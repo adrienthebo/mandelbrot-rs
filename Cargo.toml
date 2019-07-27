@@ -1,0 +1,10 @@
+[package]
+name = "mandelbrot"
+version = "0.1.0"
+authors = ["Adrien Thebo <adrien@lagrange-automation.io>"]
+edition = "2018"
+
+[dependencies]
+termion = "1.5"
+num = "0.1"
+itertools = "0.7.8"
