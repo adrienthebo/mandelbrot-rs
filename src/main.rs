@@ -11,7 +11,7 @@ use termion::input::TermRead;
 use termion::raw::IntoRawMode;
 use termion::screen::*;
 use rayon::prelude::*;
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
 #[derive(Debug)]
 struct Error {
@@ -162,16 +162,22 @@ fn main() -> Result<(), Error> {
     write!(screen, "{}", termion::cursor::Hide).unwrap();
 
     loop {
-        let start: Instant = Instant::now();
+        let render_start: Instant = Instant::now();
         let buffer = frame(&viewport, termion::terminal_size().unwrap());
-        let stop: Instant = Instant::now();
-        let delta = stop - start;
+        let render_stop: Instant = Instant::now();
+        let render_delta = render_stop - render_start;
 
+        let draw_start = Instant::now();
         write!(screen, "{}", buffer).unwrap();
+        screen.flush()?;
+        let draw_stop = Instant::now();
+        let draw_delta = draw_stop - draw_start;
+
         write!(screen, "{}re = {:e}", termion::cursor::Goto(1, 1), viewport.re0).unwrap();
         write!(screen, "{}im = {:e}", termion::cursor::Goto(1, 2), viewport.im0).unwrap();
         write!(screen, "{}scalar = {:e}", termion::cursor::Goto(1, 3), viewport.scalar).unwrap();
-        write!(screen, "{}duration = {}ms", termion::cursor::Goto(1, 4), delta.as_millis()).unwrap();
+        write!(screen, "{}render = {}ms", termion::cursor::Goto(1, 4), render_delta.as_millis()).unwrap();
+        write!(screen, "{}draw = {}ms", termion::cursor::Goto(1, 5), draw_delta.as_millis()).unwrap();
         screen.flush()?;
 
         match (&mut stdin).keys().next() {
