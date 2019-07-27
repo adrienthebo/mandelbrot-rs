@@ -1,14 +1,17 @@
 extern crate itertools;
 extern crate num;
 extern crate termion;
+extern crate rayon;
 
 use itertools::Itertools;
 use num::complex::Complex64;
 use std::io::{self, Write};
-use termion::raw::IntoRawMode;
-use termion::screen::*;
 use termion::event::Key;
 use termion::input::TermRead;
+use termion::raw::IntoRawMode;
+use termion::screen::*;
+use rayon::prelude::*;
+use std::time::{Duration, Instant};
 
 #[derive(Debug)]
 struct Error {
@@ -93,19 +96,19 @@ fn complex_at(viewport: &Viewport, bounds: (u16, u16), pos: (u16, u16)) -> Compl
 }
 
 fn rgb(iterations: Option<u32>) -> termion::color::Rgb {
-
     let i = iterations.map(f64::from).unwrap_or(0_f64);
 
-    let freq = 0.1_f64;
-    let coefficient = 127_f64;
+    let freq: f64 = 0.01;
+    let coefficient: f64 = 255.;
+    let offset: f64 = 129.;
 
-    let red_phase = 0_f64;
-    let green_phase = 2_f64;
-    let blue_phase = 4_f64;
+    let rphase: f64 = 0.;
+    let gphase: f64 = 2. * std::f64::consts::PI / 3.;
+    let bphase: f64 = 4. * std::f64::consts::PI / 3.;
 
-    let red = ((i as f64 * freq) + red_phase).sin() * coefficient;
-    let green = ((i as f64 * freq) + green_phase).sin() * coefficient;
-    let blue = ((i as f64 * freq) + blue_phase).sin() * coefficient;
+    let red = ((i * freq) + rphase).sin() * coefficient + offset;
+    let green = ((i * freq) + gphase).sin() * coefficient + offset;
+    let blue = ((i * freq) + bphase).sin() * coefficient + offset;
 
     termion::color::Rgb(red as u8, green as u8, blue as u8)
 }
@@ -120,7 +123,7 @@ fn cell_ansi(pos: (u16, u16), iterations: Option<u32>) -> String {
         "{}{}{}",
         termion::cursor::Goto(pos.0 + 1, pos.1 + 1),
         termion::color::Bg(rgb(iterations)),
-        iterations.map(|_| ".").unwrap_or(" ")
+        iterations.map(|_| " ").unwrap_or("!")
     )
 }
 
@@ -130,9 +133,11 @@ fn frame(viewport: &Viewport, bounds: (u16, u16)) -> String {
 
     y_iter
         .cartesian_product(x_iter)
-        .map(|pos| (pos, complex_at(&viewport, bounds, pos)))
-        .map(|(pos, c)| (pos, escapes(c, 100)))
-        .map(|(pos, iter)| cell_ansi(pos, iter))
+        .collect::<Vec<(u16, u16)>>()
+        .par_iter()
+        .map(|pos| (pos, complex_at(&viewport, bounds, pos.clone())))
+        .map(|(pos, c)| (pos, escapes(c, 500)))
+        .map(|(pos, iter)| cell_ansi(pos.clone(), iter))
         .collect()
 }
 
@@ -147,8 +152,16 @@ fn main() -> Result<(), Error> {
     write!(screen, "{}", termion::cursor::Hide).unwrap();
 
     loop {
+        let start: Instant = Instant::now();
         let buffer = frame(&viewport, termion::terminal_size().unwrap());
+        let stop: Instant = Instant::now();
+        let delta = stop - start;
+
         write!(screen, "{}", buffer).unwrap();
+        write!(screen, "{}re = {:e}", termion::cursor::Goto(1, 1), viewport.re0).unwrap();
+        write!(screen, "{}im = {:e}", termion::cursor::Goto(1, 2), viewport.im0).unwrap();
+        write!(screen, "{}scalar = {:e}", termion::cursor::Goto(1, 3), viewport.scalar).unwrap();
+        write!(screen, "{}duration = {}ms", termion::cursor::Goto(1, 4), delta.as_millis()).unwrap();
         screen.flush()?;
 
         match (&mut stdin).keys().next() {
@@ -157,11 +170,15 @@ fn main() -> Result<(), Error> {
             Some(Ok(Key::Char('+'))) => viewport.scalar /= 2.0,
             Some(Ok(Key::Char('-'))) => viewport.scalar *= 2.0,
 
-            Some(Ok(Key::Char('a'))) => viewport.re0 += viewport.scalar * 10.0,
-            Some(Ok(Key::Char('d'))) => viewport.re0 -= viewport.scalar * 10.0,
+            Some(Ok(Key::Char('a'))) => viewport.re0 -= viewport.scalar * 10.0,
+            Some(Ok(Key::Char('d'))) => viewport.re0 += viewport.scalar * 10.0,
 
-            Some(Ok(Key::Char('w'))) => viewport.im0 += viewport.scalar * 10.0,
-            Some(Ok(Key::Char('s'))) => viewport.im0 -= viewport.scalar * 10.0,
+            Some(Ok(Key::Char('w'))) => viewport.im0 -= viewport.scalar * 10.0,
+            Some(Ok(Key::Char('s'))) => viewport.im0 += viewport.scalar * 10.0,
+
+            Some(Ok(Key::Char('r'))) => {
+                std::mem::replace(&mut viewport, Viewport::default());
+            },
             _ => {}
         }
     }
