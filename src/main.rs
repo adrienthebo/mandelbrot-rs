@@ -96,21 +96,24 @@ fn complex_at(viewport: &Viewport, bounds: (u16, u16), pos: (u16, u16)) -> Compl
 }
 
 fn rgb(iterations: Option<u32>) -> termion::color::Rgb {
-    let i = iterations.map(f64::from).unwrap_or(0_f64);
+    match iterations.map(|i| f64::from(i)) {
+        None => termion::color::Rgb(0, 0, 0),
+        Some(i) => {
+            let freq: f64 = 0.01;
+            let coefficient: f64 = 255.;
+            let offset: f64 = 129.;
 
-    let freq: f64 = 0.01;
-    let coefficient: f64 = 255.;
-    let offset: f64 = 129.;
+            let rphase: f64 = 0.;
+            let gphase: f64 = 2. * std::f64::consts::PI / 3.;
+            let bphase: f64 = 4. * std::f64::consts::PI / 3.;
 
-    let rphase: f64 = 0.;
-    let gphase: f64 = 2. * std::f64::consts::PI / 3.;
-    let bphase: f64 = 4. * std::f64::consts::PI / 3.;
+            let red = ((i * freq) + rphase).sin() * coefficient + offset;
+            let green = ((i * freq) + gphase).sin() * coefficient + offset;
+            let blue = ((i * freq) + bphase).sin() * coefficient + offset;
 
-    let red = ((i * freq) + rphase).sin() * coefficient + offset;
-    let green = ((i * freq) + gphase).sin() * coefficient + offset;
-    let blue = ((i * freq) + bphase).sin() * coefficient + offset;
-
-    termion::color::Rgb(red as u8, green as u8, blue as u8)
+            termion::color::Rgb(red as u8, green as u8, blue as u8)
+        }
+    }
 }
 
 /// Given XY coordinates and computed mandelbrot iteration,
@@ -123,7 +126,7 @@ fn cell_ansi(pos: (u16, u16), iterations: Option<u32>) -> String {
         "{}{}{}",
         termion::cursor::Goto(pos.0 + 1, pos.1 + 1),
         termion::color::Bg(rgb(iterations)),
-        iterations.map(|_| " ").unwrap_or("!")
+        " "
     )
 }
 
