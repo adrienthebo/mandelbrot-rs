@@ -177,9 +177,10 @@ fn main() -> Result<(), Error> {
 
         write!(screen, "{}re = {:e}", termion::cursor::Goto(1, 1), viewport.re0).unwrap();
         write!(screen, "{}im = {:e}", termion::cursor::Goto(1, 2), viewport.im0).unwrap();
-        write!(screen, "{}scalar = {:e}", termion::cursor::Goto(1, 3), viewport.scalar).unwrap();
-        write!(screen, "{}render = {}ms", termion::cursor::Goto(1, 4), render_delta.as_millis()).unwrap();
-        write!(screen, "{}draw = {}ms", termion::cursor::Goto(1, 5), draw_delta.as_millis()).unwrap();
+        write!(screen, "{}max_iter = {}", termion::cursor::Goto(1, 3), viewport.max_iter).unwrap();
+        write!(screen, "{}scalar = {:e}", termion::cursor::Goto(1, 4), viewport.scalar).unwrap();
+        write!(screen, "{}render = {}ms", termion::cursor::Goto(1, 5), render_delta.as_millis()).unwrap();
+        write!(screen, "{}draw = {}ms", termion::cursor::Goto(1, 6), draw_delta.as_millis()).unwrap();
         screen.flush()?;
 
         match (&mut stdin).keys().next() {
