@@ -109,6 +109,8 @@ fn rgb(iterations: Option<u32>) -> termion::color::Rgb {
             let coefficient: f64 = 127.;
             let offset: f64 = 127.;
 
+            // These phase offsets were meant to be 120 deg apart,
+            // but this works equally well and is gorgeous.
             let rphase: f64 = 0.;
             let gphase: f64 = std::f64::consts::PI / 3.;
             let bphase: f64 = std::f64::consts::PI * 2. / 3.;
