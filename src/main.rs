@@ -5,9 +5,10 @@ extern crate termion;
 use itertools::Itertools;
 use num::complex::Complex64;
 use std::io::{self, Write};
-use std::{thread, time};
 use termion::raw::IntoRawMode;
 use termion::screen::*;
+use termion::event::Key;
+use termion::input::TermRead;
 
 #[derive(Debug)]
 struct Error {
@@ -59,12 +60,13 @@ fn escapes(c: Complex64, limit: u32) -> Option<u32> {
 }
 
 /// A given X/Y position and Z offset/magnification.
+#[derive(Debug)]
 struct Viewport {
     /// The x axis origin.
-    pub x0: f64,
+    pub im0: f64,
 
     /// The y axis origin.
-    pub y0: f64,
+    pub re0: f64,
 
     pub scalar: f64,
 }
@@ -72,8 +74,8 @@ struct Viewport {
 impl Default for Viewport {
     fn default() -> Self {
         Self {
-            x0: 0.0,
-            y0: 0.0,
+            im0: 0.0,
+            re0: 0.0,
             scalar: 0.1,
         }
     }
@@ -85,8 +87,8 @@ fn complex_at(viewport: &Viewport, bounds: (u16, u16), pos: (u16, u16)) -> Compl
     let offset: (i32, i32) = (i32::from(pos.0) - origin.0, i32::from(pos.1) - origin.1);
 
     Complex64 {
-        re: f64::from(offset.0) * viewport.scalar,
-        im: f64::from(offset.1) * viewport.scalar,
+        re: f64::from(offset.0) * viewport.scalar + viewport.re0,
+        im: f64::from(offset.1) * viewport.scalar + viewport.im0,
     }
 }
 
@@ -119,27 +121,33 @@ fn frame(viewport: &Viewport, bounds: (u16, u16)) -> String {
 
 fn main() -> Result<(), Error> {
     // Terminal initialization
+    let mut stdin = io::stdin();
     let stdout = io::stdout().into_raw_mode().unwrap();
     let mut screen = AlternateScreen::from(stdout);
 
-    let viewport = Viewport::default();
+    let mut viewport = Viewport::default();
     write!(screen, "{}", ToAlternateScreen).unwrap();
     write!(screen, "{}", termion::cursor::Hide).unwrap();
 
-    write!(
-        screen,
-        "{}{}Hello.{}Line 2.",
-        termion::clear::All,
-        termion::cursor::Goto(1, 1),
-        termion::cursor::Goto(1, 3),
-    )
-    .unwrap();
+    loop {
+        let buffer = frame(&viewport, termion::terminal_size().unwrap());
+        write!(screen, "{}", buffer).unwrap();
+        screen.flush()?;
 
-    let buffer = frame(&viewport, termion::terminal_size().unwrap());
-    write!(screen, "{}", buffer).unwrap();
-    screen.flush()?;
+        match (&mut stdin).keys().next() {
+            Some(Ok(Key::Char('q'))) => break,
 
-    thread::sleep(time::Duration::from_secs(3));
+            Some(Ok(Key::Char('+'))) => viewport.scalar /= 2.0,
+            Some(Ok(Key::Char('-'))) => viewport.scalar *= 2.0,
+
+            Some(Ok(Key::Char('a'))) => viewport.re0 += viewport.scalar * 10.0,
+            Some(Ok(Key::Char('d'))) => viewport.re0 -= viewport.scalar * 10.0,
+
+            Some(Ok(Key::Char('w'))) => viewport.im0 += viewport.scalar * 10.0,
+            Some(Ok(Key::Char('s'))) => viewport.im0 -= viewport.scalar * 10.0,
+            _ => {}
+        }
+    }
 
     write!(screen, "{}", ToMainScreen).unwrap();
     write!(screen, "{}", termion::cursor::Show).unwrap();
