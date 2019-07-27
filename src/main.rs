@@ -96,7 +96,8 @@ fn complex_at(viewport: &Viewport, bounds: (u16, u16), pos: (u16, u16)) -> Compl
 
     Complex64 {
         re: f64::from(offset.0) * viewport.scalar + viewport.re0,
-        im: f64::from(offset.1) * viewport.scalar + viewport.im0,
+        // Hack - the doubling compensates for terminal cell x/y variation
+        im: 2. * f64::from(offset.1) * viewport.scalar + viewport.im0,
     }
 }
 
@@ -104,18 +105,19 @@ fn rgb(iterations: Option<u32>) -> termion::color::Rgb {
     match iterations.map(|i| f64::from(i)) {
         None => termion::color::Rgb(0, 0, 0),
         Some(i) => {
-            let freq: f64 = 0.01;
-            let coefficient: f64 = 255.;
-            let offset: f64 = 129.;
+            let freq: f64 = 0.1;
+            let coefficient: f64 = 127.;
+            let offset: f64 = 127.;
 
             let rphase: f64 = 0.;
-            let gphase: f64 = 2. * std::f64::consts::PI / 3.;
-            let bphase: f64 = 4. * std::f64::consts::PI / 3.;
+            let gphase: f64 = std::f64::consts::PI / 3.;
+            let bphase: f64 = std::f64::consts::PI * 2. / 3.;
 
             let red = ((i * freq) + rphase).sin() * coefficient + offset;
             let green = ((i * freq) + gphase).sin() * coefficient + offset;
             let blue = ((i * freq) + bphase).sin() * coefficient + offset;
 
+            //termion::color::Rgb(red as u8, green as u8, blue as u8)
             termion::color::Rgb(red as u8, green as u8, blue as u8)
         }
     }
