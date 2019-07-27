@@ -192,10 +192,10 @@ fn main() -> Result<(), Error> {
             Some(Ok(Key::Char('w'))) => viewport.im0 -= viewport.scalar * 10.0,
             Some(Ok(Key::Char('s'))) => viewport.im0 += viewport.scalar * 10.0,
 
-            Some(Ok(Key::Char('t'))) => viewport.max_iter *= 2,
-            Some(Ok(Key::Char('g'))) => viewport.max_iter /= 2,
+            Some(Ok(Key::Char('t'))) => viewport.max_iter += 25,
+            Some(Ok(Key::Char('g'))) => viewport.max_iter -= 25,
 
-            Some(Ok(Key::Char('r'))) => {
+            Some(Ok(Key::Char('m'))) => {
                 std::mem::replace(&mut viewport, Viewport::default());
             },
             _ => {}
