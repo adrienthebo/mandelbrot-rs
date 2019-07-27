@@ -92,17 +92,34 @@ fn complex_at(viewport: &Viewport, bounds: (u16, u16), pos: (u16, u16)) -> Compl
     }
 }
 
+fn rgb(iterations: Option<u32>) -> termion::color::Rgb {
+
+    let i = iterations.map(f64::from).unwrap_or(0_f64);
+
+    let freq = 0.1_f64;
+    let coefficient = 127_f64;
+
+    let red_phase = 0_f64;
+    let green_phase = 2_f64;
+    let blue_phase = 4_f64;
+
+    let red = ((i as f64 * freq) + red_phase).sin() * coefficient;
+    let green = ((i as f64 * freq) + green_phase).sin() * coefficient;
+    let blue = ((i as f64 * freq) + blue_phase).sin() * coefficient;
+
+    termion::color::Rgb(red as u8, green as u8, blue as u8)
+}
+
 /// Given XY coordinates and computed mandelbrot iteration,
 /// compute the necessary ANSI to move the cursor and paint the cell.
 ///
 /// Note: generating strings for every element is highly inefficient; we
 /// should really be appending to a string slice. :shrug:
 fn cell_ansi(pos: (u16, u16), iterations: Option<u32>) -> String {
-    let v = iterations.unwrap_or(0) as u8;
     format!(
         "{}{}{}",
         termion::cursor::Goto(pos.0 + 1, pos.1 + 1),
-        termion::color::Bg(termion::color::Rgb(v, v, v)),
+        termion::color::Bg(rgb(iterations)),
         iterations.map(|_| ".").unwrap_or(" ")
     )
 }
