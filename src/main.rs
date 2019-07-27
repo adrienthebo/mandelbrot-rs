@@ -85,8 +85,8 @@ fn complex_at(viewport: &Viewport, bounds: (u16, u16), pos: (u16, u16)) -> Compl
     let offset: (i32, i32) = (i32::from(pos.0) - origin.0, i32::from(pos.1) - origin.1);
 
     Complex64 {
-        im: f64::from(offset.0) * viewport.scalar,
-        re: f64::from(offset.1) * viewport.scalar,
+        re: f64::from(offset.0) * viewport.scalar,
+        im: f64::from(offset.1) * viewport.scalar,
     }
 }
 
