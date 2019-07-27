@@ -71,7 +71,11 @@ struct Viewport {
     /// The y axis origin.
     pub re0: f64,
 
+    /// Magnification/zoom factor.
     pub scalar: f64,
+
+    /// The maximum iterations before declaring a complex does not converge.
+    pub max_iter: u32
 }
 
 impl Default for Viewport {
@@ -80,6 +84,7 @@ impl Default for Viewport {
             im0: 0.0,
             re0: 0.0,
             scalar: 0.1,
+            max_iter: 100
         }
     }
 }
@@ -139,7 +144,7 @@ fn frame(viewport: &Viewport, bounds: (u16, u16)) -> String {
         .collect::<Vec<(u16, u16)>>()
         .par_iter()
         .map(|pos| (pos, complex_at(&viewport, bounds, pos.clone())))
-        .map(|(pos, c)| (pos, escapes(c, 500)))
+        .map(|(pos, c)| (pos, escapes(c, viewport.max_iter)))
         .map(|(pos, iter)| cell_ansi(pos.clone(), iter))
         .collect()
 }
@@ -178,6 +183,9 @@ fn main() -> Result<(), Error> {
 
             Some(Ok(Key::Char('w'))) => viewport.im0 -= viewport.scalar * 10.0,
             Some(Ok(Key::Char('s'))) => viewport.im0 += viewport.scalar * 10.0,
+
+            Some(Ok(Key::Char('t'))) => viewport.max_iter *= 2,
+            Some(Ok(Key::Char('g'))) => viewport.max_iter /= 2,
 
             Some(Ok(Key::Char('r'))) => {
                 std::mem::replace(&mut viewport, Viewport::default());
