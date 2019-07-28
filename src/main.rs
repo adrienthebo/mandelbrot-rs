@@ -186,8 +186,13 @@ fn main() -> Result<(), Error> {
         match (&mut stdin).keys().next() {
             Some(Ok(Key::Char('q'))) => break,
 
+            // Zoom in keys - shift key is optional.
             Some(Ok(Key::Char('+'))) => viewport.scalar /= 2.0,
+            Some(Ok(Key::Char('='))) => viewport.scalar /= 2.0,
+
+            // Zoom out keys - shift key is optional.
             Some(Ok(Key::Char('-'))) => viewport.scalar *= 2.0,
+            Some(Ok(Key::Char('_'))) => viewport.scalar *= 2.0,
 
             Some(Ok(Key::Char('a'))) => viewport.re0 -= viewport.scalar * 10.0,
             Some(Ok(Key::Char('d'))) => viewport.re0 += viewport.scalar * 10.0,
