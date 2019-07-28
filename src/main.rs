@@ -50,6 +50,8 @@ impl From<io::Error> for Error {
 ///
 /// If the number does leave the circle before we give up, return `Some(i)`, where
 /// `i` is the number of iterations it took.
+///
+/// This function was copied from https://github.com/ProgrammingRust/mandelbrot/blob/3b5d168b8746ecde18d17e39e01cd6d879ee61c4/src/main.rs#L67
 fn escapes(c: Complex64, limit: u32) -> Option<u32> {
     let mut z = Complex64 { re: 0.0, im: 0.0 };
     for i in 0..limit {
@@ -62,7 +64,7 @@ fn escapes(c: Complex64, limit: u32) -> Option<u32> {
     return None;
 }
 
-/// A given X/Y position and Z offset/magnification.
+/// The rendering context or view for a given position.
 #[derive(Debug)]
 struct Viewport {
     /// The x axis origin.
@@ -139,6 +141,11 @@ fn cell_ansi(pos: (u16, u16), iterations: Option<u32>) -> String {
     )
 }
 
+/// Given a viewport and bounds, render the ANSI sequences to draw the mandelbrot
+/// fractal.
+///
+/// Note: This function performs too many heap allocations by casually using Strings
+/// and Vectors. This would perform better by writing to a pre-allocated `&str`.
 fn frame(viewport: &Viewport, bounds: (u16, u16)) -> String {
     let y_iter = 0..bounds.0;
     let x_iter = 0..bounds.1;
