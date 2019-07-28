@@ -16,7 +16,7 @@ use std::time::Instant;
 
 #[derive(Debug)]
 struct Error {
-    source: Option<Box<std::error::Error>>,
+    source: Option<Box<dyn std::error::Error>>,
 }
 
 impl std::fmt::Display for Error {
@@ -39,6 +39,9 @@ impl From<io::Error> for Error {
     }
 }
 
+type Escape = Option<u32>;
+type EMatrix = nalgebra::DMatrix<Escape>;
+
 /// Try to determine whether the complex number `c` is in the Mandelbrot set.
 ///
 /// A number `c` is in the set if, starting with zero, repeatedly squaring and
@@ -53,10 +56,11 @@ impl From<io::Error> for Error {
 /// `i` is the number of iterations it took.
 ///
 /// This function was copied from https://github.com/ProgrammingRust/mandelbrot/blob/3b5d168b8746ecde18d17e39e01cd6d879ee61c4/src/main.rs#L67
-fn escapes(c: Complex64, limit: u32) -> Option<u32> {
+fn escapes(c: Complex64, limit: u32) -> Escape {
     let mut z = Complex64 { re: 0.0, im: 0.0 };
     for i in 0..limit {
-        z = z * z + c;
+        z *= z;
+        z += c;
         if z.norm_sqr() > 4.0 {
             return Some(i);
         }
@@ -112,7 +116,7 @@ fn complex_at(viewport: &Viewport, bounds: (u16, u16), pos: (u16, u16)) -> Compl
 /// Using a 60 degree phase offset produces some beautiful sunset colors, so this
 /// isn't a true RGB conversion. It delights me to inform the reader that in this
 /// case form trumps function, so deal with it.
-fn rgb(iterations: Option<u32>) -> termion::color::Rgb {
+fn rgb(iterations: Escape) -> termion::color::Rgb {
     match iterations.map(|i| f64::from(i)) {
         None => termion::color::Rgb(0, 0, 0),
         Some(i) => {
@@ -138,7 +142,7 @@ fn rgb(iterations: Option<u32>) -> termion::color::Rgb {
 ///
 /// Note: generating strings for every element is highly inefficient; we
 /// should really be appending to a string slice. :shrug:
-fn cell_ansi(pos: (u16, u16), iterations: Option<u32>) -> String {
+fn cell_ansi(pos: (u16, u16), iterations: Escape) -> String {
     format!(
         "{}{}{}",
         termion::cursor::Goto(pos.0 + 1, pos.1 + 1),
@@ -146,9 +150,6 @@ fn cell_ansi(pos: (u16, u16), iterations: Option<u32>) -> String {
         " "
     )
 }
-
-type Escape = Option<u32>;
-type EMatrix = nalgebra::DMatrix<Escape>;
 
 fn escape_matrix(viewport: &Viewport, bounds: (u16, u16)) -> EMatrix {
     let y_iter = 0..bounds.0;
