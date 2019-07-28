@@ -2,6 +2,7 @@ extern crate itertools;
 extern crate num;
 extern crate termion;
 extern crate rayon;
+extern crate nalgebra;
 
 use itertools::Itertools;
 use num::complex::Complex64;
@@ -103,6 +104,14 @@ fn complex_at(viewport: &Viewport, bounds: (u16, u16), pos: (u16, u16)) -> Compl
     }
 }
 
+/// Convert Mandelbrot escape iterations to an RGB value.
+///
+/// Color is computed by representing (approximate) RGB values with 3 sine waves.
+///
+/// Note: To produce true RGB the sine waves need to be 120 degrees (2pi/3) apart.
+/// Using a 60 degree phase offset produces some beautiful sunset colors, so this
+/// isn't a true RGB conversion. It delights me to inform the reader that in this
+/// case form trumps function, so deal with it.
 fn rgb(iterations: Option<u32>) -> termion::color::Rgb {
     match iterations.map(|i| f64::from(i)) {
         None => termion::color::Rgb(0, 0, 0),
@@ -111,8 +120,6 @@ fn rgb(iterations: Option<u32>) -> termion::color::Rgb {
             let coefficient: f64 = 127.;
             let offset: f64 = 127.;
 
-            // These phase offsets were meant to be 120 deg apart,
-            // but this works equally well and is gorgeous.
             let rphase: f64 = 0.;
             let gphase: f64 = std::f64::consts::PI / 3.;
             let bphase: f64 = std::f64::consts::PI * 2. / 3.;
@@ -121,7 +128,6 @@ fn rgb(iterations: Option<u32>) -> termion::color::Rgb {
             let green = ((i * freq) + gphase).sin() * coefficient + offset;
             let blue = ((i * freq) + bphase).sin() * coefficient + offset;
 
-            //termion::color::Rgb(red as u8, green as u8, blue as u8)
             termion::color::Rgb(red as u8, green as u8, blue as u8)
         }
     }
@@ -141,23 +147,45 @@ fn cell_ansi(pos: (u16, u16), iterations: Option<u32>) -> String {
     )
 }
 
+type Escape = Option<u32>;
+type EMatrix = nalgebra::DMatrix<Escape>;
+
+fn escape_matrix(viewport: &Viewport, bounds: (u16, u16)) -> EMatrix {
+    let y_iter = 0..bounds.0;
+    let x_iter = 0..bounds.1;
+
+    let escapes: Vec<Escape> = y_iter
+        .cartesian_product(x_iter)
+        .collect::<Vec<(u16, u16)>>()
+        .par_iter()
+        .map(|pos| complex_at(&viewport, bounds, pos.clone()))
+        .map(|c| escapes(c, viewport.max_iter))
+        .collect();
+
+
+    EMatrix::from_vec(usize::from(bounds.0), usize::from(bounds.1), escapes)
+}
+
+fn ematrix_to_frame(viewport: &Viewport, bounds: (u16, u16)) -> String {
+    let mat = escape_matrix(viewport, bounds);
+
+    let y_iter = 0..bounds.0;
+    let x_iter = 0..bounds.1;
+
+    y_iter
+        .cartesian_product(x_iter)
+        .zip(mat.iter())
+        .map(move |(pos, escape)| cell_ansi(pos, *escape))
+        .collect()
+}
+
 /// Given a viewport and bounds, render the ANSI sequences to draw the mandelbrot
 /// fractal.
 ///
 /// Note: This function performs too many heap allocations by casually using Strings
 /// and Vectors. This would perform better by writing to a pre-allocated `&str`.
 fn frame(viewport: &Viewport, bounds: (u16, u16)) -> String {
-    let y_iter = 0..bounds.0;
-    let x_iter = 0..bounds.1;
-
-    y_iter
-        .cartesian_product(x_iter)
-        .collect::<Vec<(u16, u16)>>()
-        .par_iter()
-        .map(|pos| (pos, complex_at(&viewport, bounds, pos.clone())))
-        .map(|(pos, c)| (pos, escapes(c, viewport.max_iter)))
-        .map(|(pos, iter)| cell_ansi(pos.clone(), iter))
-        .collect()
+    ematrix_to_frame(&viewport, bounds)
 }
 
 fn main() -> Result<(), Error> {
