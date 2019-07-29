@@ -16,7 +16,7 @@ use std::time::Instant;
 
 #[derive(Debug)]
 struct Error {
-    source: Option<Box<dyn std::error::Error + Send + Sync>>,
+    source: Option<Box<dyn std::error::Error>>,
 }
 
 impl std::fmt::Display for Error {
@@ -27,10 +27,7 @@ impl std::fmt::Display for Error {
 
 impl std::error::Error for Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match self.source {
-            None => None,
-            Some(ref e) => e.source()
-        }
+        self.source.as_ref().map(|e| &**e)
     }
 }
 
