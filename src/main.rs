@@ -170,9 +170,7 @@ fn escape_matrix(viewport: &Viewport, bounds: (u16, u16)) -> EMatrix {
     EMatrix::from_vec(usize::from(bounds.0), usize::from(bounds.1), escapes)
 }
 
-fn ematrix_to_frame(viewport: &Viewport, bounds: (u16, u16)) -> String {
-    let mat = escape_matrix(viewport, bounds);
-
+fn ematrix_to_frame(mat: EMatrix, bounds: (u16, u16)) -> String {
     let y_iter = 0..bounds.0;
     let x_iter = 0..bounds.1;
 
@@ -189,7 +187,7 @@ fn ematrix_to_frame(viewport: &Viewport, bounds: (u16, u16)) -> String {
 /// Note: This function performs too many heap allocations by casually using Strings
 /// and Vectors. This would perform better by writing to a pre-allocated `&str`.
 fn frame(viewport: &Viewport, bounds: (u16, u16)) -> String {
-    ematrix_to_frame(&viewport, bounds)
+    ematrix_to_frame(escape_matrix(&viewport, bounds), bounds)
 }
 
 fn main() -> Result<(), Error> {
