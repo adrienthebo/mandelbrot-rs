@@ -43,6 +43,55 @@ type Escape = Option<u32>;
 type EMatrix = nalgebra::DMatrix<Escape>;
 
 #[allow(unused)]
+struct Mandelbrot {
+    pub exp: f64,
+}
+
+impl Default for Mandelbrot {
+    fn default() -> Self {
+        Mandelbrot { exp: 2. }
+    }
+}
+
+impl From<Julia> for Mandelbrot {
+    fn from(j: Julia) -> Self {
+        Mandelbrot { exp: j.exp }
+    }
+}
+
+#[allow(unused)]
+struct Julia {
+    pub exp: f64,
+    pub c: Complex64,
+}
+
+impl Default for Julia {
+    fn default() -> Self {
+        Julia { exp: 2., c: Complex64 { re: 0.6, im: 0.4 } }
+    }
+}
+
+impl Julia {
+    /// Create a Julia set with a given mandelbrot algorithm and
+    /// re/im coordinates.
+    ///
+    pub fn from_mandelbrot(m: Mandelbrot, c: Complex64) -> Self {
+        Julia { exp: m.exp, c }
+    }
+}
+
+enum FractalSet {
+    Julia(Julia),
+    Mandelbrot(Mandelbrot)
+}
+
+impl Default for FractalSet {
+    fn default() -> Self {
+        FractalSet::Mandelbrot(Mandelbrot::default())
+    }
+}
+
+#[allow(unused)]
 fn mandelbrot(c: Complex64, limit: u32) -> Escape {
     let mut z = Complex64 { re: 0.0, im: 0.0 };
     for i in 0..limit {
@@ -73,8 +122,8 @@ fn julia(c: Complex64, limit: u32) -> Escape {
 #[allow(unused)]
 #[derive(Debug)]
 enum Algorithm {
-    Julia,
-    Mandelbrot,
+    Julia { exp: f64, c: Complex64 },
+    Mandelbrot { exp: f64 },
 }
 
 /// The rendering context or view for a given position.
