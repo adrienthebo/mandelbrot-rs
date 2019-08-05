@@ -43,6 +43,7 @@ type Escape = Option<u32>;
 type EMatrix = nalgebra::DMatrix<Escape>;
 
 #[allow(unused)]
+#[derive(Debug)]
 struct Mandelbrot {
     pub exp: f64,
 }
@@ -59,7 +60,23 @@ impl From<Julia> for Mandelbrot {
     }
 }
 
+impl Mandelbrot {
+    pub fn render(&self, c: Complex64, limit: u32) -> Escape {
+        let mut z = Complex64 { re: 0.0, im: 0.0 };
+        for i in 0..limit {
+            z *= z;
+            z += c;
+            if z.norm_sqr() > 4.0 {
+                return Some(i);
+            }
+        }
+
+        return None;
+    }
+}
+
 #[allow(unused)]
+#[derive(Debug)]
 struct Julia {
     pub exp: f64,
     pub c: Complex64,
@@ -78,31 +95,42 @@ impl Julia {
     pub fn from_mandelbrot(m: Mandelbrot, c: Complex64) -> Self {
         Julia { exp: m.exp, c }
     }
+
+    #[allow(unused)]
+    fn render(&self, c: Complex64, limit: u32) -> Escape {
+        let mut z = c.clone();
+        for i in 0..limit {
+            z *= z;
+            z += Complex64 { re: -1.5, im: -0.2 };
+            if z.norm_sqr() > 4.0 || z.norm_sqr() < 0.0000001{
+                return Some(i);
+            }
+        }
+
+        return None;
+    }
 }
 
-enum FractalSet {
+#[derive(Debug)]
+enum Holomorphic {
     Julia(Julia),
     Mandelbrot(Mandelbrot)
 }
 
-impl Default for FractalSet {
-    fn default() -> Self {
-        FractalSet::Mandelbrot(Mandelbrot::default())
+impl Holomorphic {
+    pub fn render(&self, c: Complex64, limit: u32) -> Escape {
+        match self {
+            Holomorphic::Julia(j) => j.render(c, limit),
+            Holomorphic::Mandelbrot(m) => m.render(c, limit),
+
+        }
     }
 }
 
-#[allow(unused)]
-fn mandelbrot(c: Complex64, limit: u32) -> Escape {
-    let mut z = Complex64 { re: 0.0, im: 0.0 };
-    for i in 0..limit {
-        z *= z;
-        z += c;
-        if z.norm_sqr() > 4.0 {
-            return Some(i);
-        }
+impl Default for Holomorphic {
+    fn default() -> Self {
+        Holomorphic::Mandelbrot(Mandelbrot::default())
     }
-
-    return None;
 }
 
 #[allow(unused)]
@@ -139,7 +167,9 @@ struct Viewport {
     pub scalar: f64,
 
     /// The maximum iterations before declaring a complex does not converge.
-    pub max_iter: u32
+    pub max_iter: u32,
+
+    pub holomorphic: Holomorphic,
 }
 
 impl Default for Viewport {
@@ -148,7 +178,8 @@ impl Default for Viewport {
             im0: 0.0,
             re0: 0.0,
             scalar: 0.1,
-            max_iter: 100
+            max_iter: 100,
+            holomorphic: Holomorphic::default()
         }
     }
 }
@@ -217,7 +248,7 @@ fn escape_matrix(viewport: &Viewport, bounds: (u16, u16)) -> EMatrix {
         .collect::<Vec<(u16, u16)>>()
         .par_iter()
         .map(|pos| complex_at(&viewport, bounds, pos.clone()))
-        .map(|c| mandelbrot(c, viewport.max_iter))
+        .map(|c| viewport.holomorphic.render(c, viewport.max_iter))
         .collect();
 
 
