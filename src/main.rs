@@ -139,7 +139,7 @@ fn julia(c: Complex64, limit: u32) -> Escape {
     for i in 0..limit {
         z *= z;
         z += Complex64 { re: -1.5, im: -0.2 };
-        if z.norm_sqr() > 4.0 || z.norm_sqr() < 0.0000001{
+        if z.norm_sqr() > 4.0 {
             return Some(i);
         }
     }
