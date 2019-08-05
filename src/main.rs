@@ -1,3 +1,6 @@
+#![allow(unused)]
+// TODO: remove this
+
 extern crate itertools;
 extern crate num;
 extern crate termion;
@@ -42,7 +45,6 @@ impl From<io::Error> for Error {
 type Escape = Option<u32>;
 type EMatrix = nalgebra::DMatrix<Escape>;
 
-#[allow(unused)]
 #[derive(Debug)]
 struct Mandelbrot {
     pub exp: f64,
@@ -75,7 +77,6 @@ impl Mandelbrot {
     }
 }
 
-#[allow(unused)]
 #[derive(Debug)]
 struct Julia {
     pub exp: f64,
@@ -91,18 +92,16 @@ impl Default for Julia {
 impl Julia {
     /// Create a Julia set with a given mandelbrot algorithm and
     /// re/im coordinates.
-    ///
     pub fn from_mandelbrot(m: Mandelbrot, c: Complex64) -> Self {
         Julia { exp: m.exp, c }
     }
 
-    #[allow(unused)]
     fn render(&self, c: Complex64, limit: u32) -> Escape {
         let mut z = c.clone();
         for i in 0..limit {
             z *= z;
             z += Complex64 { re: -1.5, im: -0.2 };
-            if z.norm_sqr() > 4.0 || z.norm_sqr() < 0.0000001{
+            if z.norm_sqr() > 4.0 {
                 return Some(i);
             }
         }
@@ -111,6 +110,9 @@ impl Julia {
     }
 }
 
+/// A complex-valued function that is locally differentiable.
+///
+/// In more reasonable terms, this is either a Julia set or a Mandelbrot set.
 #[derive(Debug)]
 enum Holomorphic {
     Julia(Julia),
@@ -133,21 +135,6 @@ impl Default for Holomorphic {
     }
 }
 
-#[allow(unused)]
-fn julia(c: Complex64, limit: u32) -> Escape {
-    let mut z = c.clone();
-    for i in 0..limit {
-        z *= z;
-        z += Complex64 { re: -1.5, im: -0.2 };
-        if z.norm_sqr() > 4.0 {
-            return Some(i);
-        }
-    }
-
-    return None;
-}
-
-#[allow(unused)]
 #[derive(Debug)]
 enum Algorithm {
     Julia { exp: f64, c: Complex64 },
