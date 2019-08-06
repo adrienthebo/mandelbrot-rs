@@ -56,8 +56,8 @@ impl Default for Mandelbrot {
     }
 }
 
-impl From<Julia> for Mandelbrot {
-    fn from(j: Julia) -> Self {
+impl From<&Julia> for Mandelbrot {
+    fn from(j: &Julia) -> Self {
         Mandelbrot { exp: j.exp }
     }
 }
@@ -80,27 +80,27 @@ impl Mandelbrot {
 #[derive(Debug)]
 struct Julia {
     pub exp: f64,
-    pub c: Complex64,
+    pub c_offset: Complex64,
 }
 
 impl Default for Julia {
     fn default() -> Self {
-        Julia { exp: 2., c: Complex64 { re: 0.6, im: 0.4 } }
+        Julia { exp: 2., c_offset: Complex64 { re: 0.6, im: 0.4 } }
     }
 }
 
 impl Julia {
     /// Create a Julia set with a given mandelbrot algorithm and
     /// re/im coordinates.
-    pub fn from_mandelbrot(m: Mandelbrot, c: Complex64) -> Self {
-        Julia { exp: m.exp, c }
+    pub fn from_c(m: &Mandelbrot, c_offset: Complex64) -> Self {
+        Julia { exp: m.exp, c_offset: c_offset }
     }
 
     fn render(&self, c: Complex64, limit: u32) -> Escape {
         let mut z = c.clone();
         for i in 0..limit {
             z *= z;
-            z += Complex64 { re: -1.5, im: -0.2 };
+            z += self.c_offset;
             if z.norm_sqr() > 4.0 {
                 return Some(i);
             }
@@ -285,10 +285,11 @@ fn main() -> Result<(), Error> {
         let draw_delta = draw_stop - draw_start;
 
         let labels = vec![
-            format!("re     = {:e}", viewport.re0),
-            format!("im     = {:e}", viewport.im0),
+            format!("viewport = {:?}", &viewport),
+            format!("re     = {:.4e}", viewport.re0),
+            format!("im     = {:.4e}", viewport.im0),
             format!("iter   = {}", viewport.max_iter),
-            format!("scalar = {:e}", viewport.scalar),
+            format!("scalar = {:.4e}", viewport.scalar),
             format!("render = {}ms", render_delta.as_millis()),
             format!("draw   = {}ms", draw_delta.as_millis())
         ];
@@ -313,18 +314,38 @@ fn main() -> Result<(), Error> {
             Some(Ok(Key::Char('-'))) => viewport.scalar *= 2.0,
             Some(Ok(Key::Char('_'))) => viewport.scalar *= 2.0,
 
+            // Move left/right along the real axis.
             Some(Ok(Key::Char('a'))) => viewport.re0 -= viewport.scalar * 10.0,
             Some(Ok(Key::Char('d'))) => viewport.re0 += viewport.scalar * 10.0,
 
+            // Move up and down on the imaginary axis.
             Some(Ok(Key::Char('w'))) => viewport.im0 -= viewport.scalar * 10.0,
             Some(Ok(Key::Char('s'))) => viewport.im0 += viewport.scalar * 10.0,
 
+            // Increase the limit on iterations to escape.
             Some(Ok(Key::Char('t'))) => viewport.max_iter += 25,
             Some(Ok(Key::Char('g'))) => viewport.max_iter -= 25,
 
+            // Reset to default.
             Some(Ok(Key::Char('m'))) => {
                 std::mem::replace(&mut viewport, Viewport::default());
             },
+
+            // Toggle between the Julia sets and the Mandelbrot sets.
+            Some(Ok(Key::Char('x'))) => {
+                let new_holo: Holomorphic;
+                match viewport.holomorphic {
+                    Holomorphic::Julia(ref j) => {
+                        new_holo = Holomorphic::Mandelbrot(Mandelbrot::from(j.clone()));
+                    }
+                    Holomorphic::Mandelbrot(ref m) => {
+                        let c = Complex64 { re: viewport.re0, im: viewport.im0 };
+                        new_holo = Holomorphic::Julia(Julia::from_c(m.clone(), c))
+                    }
+                }
+                viewport.holomorphic = new_holo;
+            }
+
             _ => {}
         }
     }
