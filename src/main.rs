@@ -42,7 +42,10 @@ impl From<io::Error> for Error {
     }
 }
 
+/// An Escape represents the status of an evaluated point's escape iteration.
 type Escape = Option<u32>;
+
+/// An EMatrix maps the cells in a frame to corresponding evaluated escapes.
 type EMatrix = nalgebra::DMatrix<Escape>;
 
 #[derive(Debug)]
