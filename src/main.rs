@@ -1,6 +1,3 @@
-#![allow(unused)]
-// TODO: remove this
-
 extern crate itertools;
 extern crate num;
 extern crate termion;
@@ -17,7 +14,7 @@ use termion::raw::IntoRawMode;
 use termion::screen::*;
 use rayon::prelude::*;
 use std::time::{Instant, SystemTime};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use std::fs::File;
 
 #[derive(Debug)]
@@ -139,12 +136,6 @@ impl Default for Holomorphic {
     fn default() -> Self {
         Holomorphic::Mandelbrot(Mandelbrot::default())
     }
-}
-
-#[derive(Debug)]
-enum Algorithm {
-    Julia { exp: f64, c: Complex64 },
-    Mandelbrot { exp: f64 },
 }
 
 /// The rendering context or view for a given position.
@@ -322,7 +313,7 @@ fn main() -> std::result::Result<(), crate::Error> {
     write!(screen, "{}", termion::cursor::Hide).unwrap();
 
     loop {
-        draw_frame(&mut screen, &viewport);
+        draw_frame(&mut screen, &viewport)?;
         match (&mut stdin).keys().next() {
             Some(Ok(Key::Char('q'))) => break,
 
@@ -353,7 +344,8 @@ fn main() -> std::result::Result<(), crate::Error> {
 
             // Write the viewport state to a JSON file.
             Some(Ok(Key::Char('p'))) => {
-                write_viewport(&viewport);
+                // TODO: handle write errors without panicking.
+                let _ = write_viewport(&viewport);
             },
 
             // Toggle between the Julia sets and the Mandelbrot sets.
