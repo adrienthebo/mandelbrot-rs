@@ -240,7 +240,7 @@ fn escape_matrix(viewport: &Viewport, bounds: (u16, u16)) -> EMatrix {
     EMatrix::from_vec(usize::from(bounds.0), usize::from(bounds.1), escapes)
 }
 
-fn ematrix_to_frame(mat: EMatrix, bounds: (u16, u16)) -> String {
+fn ematrix_to_frame(mat: &EMatrix, bounds: (u16, u16)) -> String {
     let y_iter = 0..bounds.0;
     let x_iter = 0..bounds.1;
 
@@ -251,25 +251,20 @@ fn ematrix_to_frame(mat: EMatrix, bounds: (u16, u16)) -> String {
         .collect()
 }
 
-/// Given a viewport and bounds, render the ANSI sequences to draw the mandelbrot
-/// fractal.
-///
-/// Note: This function performs too many heap allocations by casually using Strings
-/// and Vectors. This would perform better by writing to a pre-allocated `&str`.
-fn frame(viewport: &Viewport, bounds: (u16, u16)) -> String {
-    ematrix_to_frame(escape_matrix(&viewport, bounds), bounds)
-}
-
 fn draw_frame<W: Write>(screen: &mut W, viewport: &Viewport) -> Result<(), crate::Error> {
+    let bounds = termion::terminal_size()?;
+
     let render_start: Instant = Instant::now();
-    let buffer = frame(&viewport, termion::terminal_size().unwrap());
+    let mat = escape_matrix(&viewport, bounds);
+    let buffer = ematrix_to_frame(&mat, bounds);
     let render_stop: Instant = Instant::now();
-    let render_delta = render_stop - render_start;
 
     let draw_start = Instant::now();
     write!(screen, "{}", buffer).unwrap();
     screen.flush()?;
     let draw_stop = Instant::now();
+
+    let render_delta = render_stop - render_start;
     let draw_delta = draw_stop - draw_start;
 
     let labels = vec![
