@@ -268,6 +268,39 @@ fn frame(viewport: &Viewport, bounds: (u16, u16)) -> String {
     ematrix_to_frame(escape_matrix(&viewport, bounds), bounds)
 }
 
+fn draw_frame<W: Write>(screen: &mut W, viewport: &Viewport) -> Result<(), crate::Error> {
+    let render_start: Instant = Instant::now();
+    let buffer = frame(&viewport, termion::terminal_size().unwrap());
+    let render_stop: Instant = Instant::now();
+    let render_delta = render_stop - render_start;
+
+    let draw_start = Instant::now();
+    write!(screen, "{}", buffer).unwrap();
+    screen.flush()?;
+    let draw_stop = Instant::now();
+    let draw_delta = draw_stop - draw_start;
+
+    let labels = vec![
+        format!("viewport = {:?}", &viewport),
+        format!("re     = {:.4e}", viewport.re0),
+        format!("im     = {:.4e}", viewport.im0),
+        format!("iter   = {}", viewport.max_iter),
+        format!("scalar = {:.4e}", viewport.scalar),
+        format!("render = {}ms", render_delta.as_millis()),
+        format!("draw   = {}ms", draw_delta.as_millis())
+    ];
+
+    for (offset, label) in labels.iter().enumerate() {
+        write!(screen, "{}{}{}",
+               termion::cursor::Goto(1, offset as u16 + 1),
+               termion::style::Reset,
+               label).unwrap();
+    }
+
+    screen.flush()?;
+    Ok(())
+}
+
 fn main() -> std::result::Result<(), crate::Error> {
     // Terminal initialization
     let mut stdin = io::stdin();
@@ -279,36 +312,7 @@ fn main() -> std::result::Result<(), crate::Error> {
     write!(screen, "{}", termion::cursor::Hide).unwrap();
 
     loop {
-        let render_start: Instant = Instant::now();
-        let buffer = frame(&viewport, termion::terminal_size().unwrap());
-        let render_stop: Instant = Instant::now();
-        let render_delta = render_stop - render_start;
-
-        let draw_start = Instant::now();
-        write!(screen, "{}", buffer).unwrap();
-        screen.flush()?;
-        let draw_stop = Instant::now();
-        let draw_delta = draw_stop - draw_start;
-
-        let labels = vec![
-            format!("viewport = {:?}", &viewport),
-            format!("re     = {:.4e}", viewport.re0),
-            format!("im     = {:.4e}", viewport.im0),
-            format!("iter   = {}", viewport.max_iter),
-            format!("scalar = {:.4e}", viewport.scalar),
-            format!("render = {}ms", render_delta.as_millis()),
-            format!("draw   = {}ms", draw_delta.as_millis())
-        ];
-
-        for (offset, label) in labels.iter().enumerate() {
-            write!(screen, "{}{}{}",
-                   termion::cursor::Goto(1, offset as u16 + 1),
-                   termion::style::Reset,
-                   label).unwrap();
-        }
-
-        screen.flush()?;
-
+        draw_frame(&mut screen, &viewport);
         match (&mut stdin).keys().next() {
             Some(Ok(Key::Char('q'))) => break,
 
