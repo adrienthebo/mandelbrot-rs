@@ -16,8 +16,9 @@ use termion::input::TermRead;
 use termion::raw::IntoRawMode;
 use termion::screen::*;
 use rayon::prelude::*;
-use std::time::Instant;
+use std::time::{Instant, SystemTime};
 use serde::{Deserialize, Serialize};
+use std::fs::File;
 
 #[derive(Debug)]
 struct Error {
@@ -301,6 +302,15 @@ fn draw_frame<W: Write>(screen: &mut W, viewport: &Viewport) -> Result<(), crate
     Ok(())
 }
 
+fn write_viewport(viewport: &Viewport) -> std::io::Result<()> {
+    let unix_secs = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap();
+    let path = format!("mb-{}.json", unix_secs.as_secs() as u64);
+
+    let mut f = File::create(path)?;
+    let buf = serde_json::to_string(&viewport).unwrap();
+    f.write_all(&buf.as_bytes())
+}
+
 fn main() -> std::result::Result<(), crate::Error> {
     // Terminal initialization
     let mut stdin = io::stdin();
@@ -339,6 +349,11 @@ fn main() -> std::result::Result<(), crate::Error> {
             // Reset to default.
             Some(Ok(Key::Char('m'))) => {
                 std::mem::replace(&mut viewport, Viewport::default());
+            },
+
+            // Write the viewport state to a JSON file.
+            Some(Ok(Key::Char('p'))) => {
+                write_viewport(&viewport);
             },
 
             // Toggle between the Julia sets and the Mandelbrot sets.
