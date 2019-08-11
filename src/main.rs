@@ -6,6 +6,7 @@ extern crate num;
 extern crate termion;
 extern crate rayon;
 extern crate nalgebra;
+extern crate serde;
 
 use itertools::Itertools;
 use num::complex::Complex64;
@@ -16,6 +17,7 @@ use termion::raw::IntoRawMode;
 use termion::screen::*;
 use rayon::prelude::*;
 use std::time::Instant;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug)]
 struct Error {
@@ -48,7 +50,7 @@ type Escape = Option<u32>;
 /// An EMatrix maps the cells in a frame to corresponding evaluated escapes.
 type EMatrix = nalgebra::DMatrix<Escape>;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 struct Mandelbrot {
     pub exp: f64,
 }
@@ -80,7 +82,7 @@ impl Mandelbrot {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 struct Julia {
     pub exp: f64,
     pub c_offset: Complex64,
@@ -116,7 +118,7 @@ impl Julia {
 /// A complex-valued function that is locally differentiable.
 ///
 /// In more reasonable terms, this is either a Julia set or a Mandelbrot set.
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 enum Holomorphic {
     Julia(Julia),
     Mandelbrot(Mandelbrot)
@@ -145,7 +147,7 @@ enum Algorithm {
 }
 
 /// The rendering context or view for a given position.
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 struct Viewport {
     /// The x axis origin.
     pub im0: f64,
@@ -159,6 +161,7 @@ struct Viewport {
     /// The maximum iterations before declaring a complex does not converge.
     pub max_iter: u32,
 
+    /// The active holomorphic function.
     pub holomorphic: Holomorphic,
 }
 
@@ -265,7 +268,7 @@ fn frame(viewport: &Viewport, bounds: (u16, u16)) -> String {
     ematrix_to_frame(escape_matrix(&viewport, bounds), bounds)
 }
 
-fn main() -> Result<(), Error> {
+fn main() -> std::result::Result<(), crate::Error> {
     // Terminal initialization
     let mut stdin = io::stdin();
     let stdout = io::stdout().into_raw_mode().unwrap();
