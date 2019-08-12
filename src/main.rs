@@ -1,21 +1,22 @@
+extern crate image;
 extern crate itertools;
-extern crate num;
-extern crate termion;
-extern crate rayon;
 extern crate nalgebra;
+extern crate num;
+extern crate rayon;
 extern crate serde;
+extern crate termion;
 
 use itertools::Itertools;
 use num::complex::Complex64;
+use rayon::prelude::*;
+use serde::Serialize;
+use std::fs::File;
 use std::io::{self, Write};
+use std::time::{Instant, SystemTime};
 use termion::event::Key;
 use termion::input::TermRead;
 use termion::raw::IntoRawMode;
 use termion::screen::*;
-use rayon::prelude::*;
-use std::time::{Instant, SystemTime};
-use serde::Serialize;
-use std::fs::File;
 
 #[derive(Debug)]
 struct Error {
@@ -46,7 +47,89 @@ impl From<io::Error> for Error {
 type Escape = Option<u32>;
 
 /// An EMatrix maps the cells in a frame to corresponding evaluated escapes.
-type EMatrix = nalgebra::DMatrix<Escape>;
+struct EMatrix(nalgebra::DMatrix<Escape>);
+
+impl EMatrix {
+    pub fn from_vec(ncols: usize, nrows: usize, v: Vec<Escape>) -> EMatrix {
+        let mat = nalgebra::DMatrix::from_vec(ncols, nrows, v);
+        Self(mat)
+    }
+
+    pub fn get_mut(&mut self, index: usize) -> Option<&mut Escape> {
+        self.0.get_mut(index)
+    }
+
+    pub fn get(&self, index: usize) -> Option<&Escape> {
+        self.0.get(index)
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn iter(&self) -> EMatrixRefIterator {
+        EMatrixRefIterator { mat: self, index: 0 }
+    }
+}
+
+struct EMatrixIterator {
+    mat: EMatrix,
+    index: usize,
+}
+
+impl std::iter::Iterator for EMatrixIterator {
+    type Item = Escape;
+
+    fn next(&mut self) -> Option<Escape> {
+        if self.index >= self.mat.len() {
+            None
+        } else {
+            let esc: Escape = self.mat.0.index(self.index).clone(); // XXX bad memory allocation
+            self.index += 1;
+            Some(esc)
+        }
+    }
+}
+
+impl std::iter::IntoIterator for EMatrix {
+    type Item = Escape;
+    type IntoIter = EMatrixIterator;
+
+    fn into_iter(self) -> Self::IntoIter {
+        EMatrixIterator {
+            mat: self,
+            index: 0
+        }
+    }
+}
+
+struct EMatrixRefIterator<'a> {
+    mat: &'a EMatrix,
+    index: usize
+}
+
+impl<'a> std::iter::Iterator for EMatrixRefIterator<'a> {
+    type Item = &'a Escape;
+
+    fn next(&mut self) -> Option<&'a Escape> {
+        if self.index >= self.mat.len() {
+            None
+        } else {
+            let esc: &Escape = self.mat.0.index(self.index);
+            self.index += 1;
+            Some(esc)
+        }
+    }
+}
+
+impl<'a> IntoIterator for &'a EMatrix {
+    type Item = &'a Escape;
+    type IntoIter = EMatrixRefIterator<'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        EMatrixRefIterator { mat: self, index: 0 }
+    }
+}
 
 #[derive(Debug, Serialize)]
 struct Mandelbrot {
@@ -88,7 +171,10 @@ struct Julia {
 
 impl Default for Julia {
     fn default() -> Self {
-        Julia { exp: 2., c_offset: Complex64 { re: 0.6, im: 0.4 } }
+        Julia {
+            exp: 2.,
+            c_offset: Complex64 { re: 0.6, im: 0.4 },
+        }
     }
 }
 
@@ -96,7 +182,10 @@ impl Julia {
     /// Create a Julia set with a given mandelbrot algorithm and
     /// re/im coordinates.
     pub fn from_c(m: &Mandelbrot, c_offset: Complex64) -> Self {
-        Julia { exp: m.exp, c_offset: c_offset }
+        Julia {
+            exp: m.exp,
+            c_offset: c_offset,
+        }
     }
 
     fn render(&self, c: Complex64, limit: u32) -> Escape {
@@ -119,7 +208,7 @@ impl Julia {
 #[derive(Debug, Serialize)]
 enum Holomorphic {
     Julia(Julia),
-    Mandelbrot(Mandelbrot)
+    Mandelbrot(Mandelbrot),
 }
 
 impl Holomorphic {
@@ -127,7 +216,6 @@ impl Holomorphic {
         match self {
             Holomorphic::Julia(j) => j.render(c, limit),
             Holomorphic::Mandelbrot(m) => m.render(c, limit),
-
         }
     }
 }
@@ -164,7 +252,7 @@ impl Default for Viewport {
             re0: 0.0,
             scalar: 0.1,
             max_iter: 100,
-            holomorphic: Holomorphic::default()
+            holomorphic: Holomorphic::default(),
         }
     }
 }
@@ -236,7 +324,6 @@ fn escape_matrix(viewport: &Viewport, bounds: (u16, u16)) -> EMatrix {
         .map(|c| viewport.holomorphic.render(c, viewport.max_iter))
         .collect();
 
-
     EMatrix::from_vec(usize::from(bounds.0), usize::from(bounds.1), escapes)
 }
 
@@ -274,22 +361,37 @@ fn draw_frame<W: Write>(screen: &mut W, viewport: &Viewport) -> Result<(), crate
         format!("iter   = {}", viewport.max_iter),
         format!("scalar = {:.4e}", viewport.scalar),
         format!("render = {}ms", render_delta.as_millis()),
-        format!("draw   = {}ms", draw_delta.as_millis())
+        format!("draw   = {}ms", draw_delta.as_millis()),
     ];
 
     for (offset, label) in labels.iter().enumerate() {
-        write!(screen, "{}{}{}",
-               termion::cursor::Goto(1, offset as u16 + 1),
-               termion::style::Reset,
-               label).unwrap();
+        write!(
+            screen,
+            "{}{}{}",
+            termion::cursor::Goto(1, offset as u16 + 1),
+            termion::style::Reset,
+            label
+        )
+        .unwrap();
     }
 
     screen.flush()?;
     Ok(())
 }
 
+#[allow(unused)]
+fn write_ematrix(ematrix: &EMatrix) -> io::Result<()> {
+    let unix_secs = SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .unwrap();
+    let path = format!("mb-{}.png", unix_secs.as_secs() as u64);
+    unimplemented!()
+}
+
 fn write_viewport(viewport: &Viewport) -> std::io::Result<()> {
-    let unix_secs = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap();
+    let unix_secs = SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .unwrap();
     let path = format!("mb-{}.json", unix_secs.as_secs() as u64);
 
     let mut f = File::create(path)?;
@@ -335,13 +437,13 @@ fn main() -> std::result::Result<(), crate::Error> {
             // Reset to default.
             Some(Ok(Key::Char('m'))) => {
                 std::mem::replace(&mut viewport, Viewport::default());
-            },
+            }
 
             // Write the viewport state to a JSON file.
             Some(Ok(Key::Char('p'))) => {
                 // TODO: handle write errors without panicking.
                 let _ = write_viewport(&viewport);
-            },
+            }
 
             // Toggle between the Julia sets and the Mandelbrot sets.
             Some(Ok(Key::Char('x'))) => {
@@ -351,7 +453,10 @@ fn main() -> std::result::Result<(), crate::Error> {
                         new_holo = Holomorphic::Mandelbrot(Mandelbrot::from(j.clone()));
                     }
                     Holomorphic::Mandelbrot(ref m) => {
-                        let c = Complex64 { re: viewport.re0, im: viewport.im0 };
+                        let c = Complex64 {
+                            re: viewport.re0,
+                            im: viewport.im0,
+                        };
                         new_holo = Holomorphic::Julia(Julia::from_c(m.clone(), c))
                     }
                 }
