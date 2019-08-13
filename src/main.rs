@@ -47,6 +47,7 @@ impl From<io::Error> for Error {
 type Escape = Option<u32>;
 
 /// An EMatrix maps the cells in a frame to corresponding evaluated escapes.
+#[derive(Debug, Clone)]
 struct EMatrix(nalgebra::DMatrix<Escape>);
 
 impl EMatrix {
@@ -69,6 +70,15 @@ impl EMatrix {
 
     pub fn iter(&self) -> EMatrixRefIterator {
         EMatrixRefIterator { mat: self, index: 0 }
+    }
+
+    pub fn into_img(self) -> image::RgbImage {
+        let mat = self.0;
+        image::RgbImage::from_fn(mat.ncols() as u32, mat.nrows() as u32, move |x, y| {
+            let escape = mat.index((y as usize, x as usize));
+            let term_rgb = rgb(*escape);
+            image::Rgb([term_rgb.0, term_rgb.1, term_rgb.2])
+        })
     }
 }
 
@@ -131,7 +141,7 @@ impl<'a> IntoIterator for &'a EMatrix {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Clone, Debug, Serialize)]
 struct Mandelbrot {
     pub exp: f64,
 }
@@ -163,7 +173,7 @@ impl Mandelbrot {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Clone, Debug, Serialize)]
 struct Julia {
     pub exp: f64,
     pub c_offset: Complex64,
@@ -205,7 +215,7 @@ impl Julia {
 /// A complex-valued function that is locally differentiable.
 ///
 /// In more reasonable terms, this is either a Julia set or a Mandelbrot set.
-#[derive(Debug, Serialize)]
+#[derive(Clone, Debug, Serialize)]
 enum Holomorphic {
     Julia(Julia),
     Mandelbrot(Mandelbrot),
@@ -227,13 +237,18 @@ impl Default for Holomorphic {
 }
 
 /// The rendering context or view for a given position.
-#[derive(Debug, Serialize)]
+#[derive(Clone, Debug, Serialize)]
 struct Viewport {
     /// The x axis origin.
     pub im0: f64,
 
     /// The y axis origin.
     pub re0: f64,
+
+    /// Dimensional scaling factors in case the canvas is not square.
+    ///
+    /// This compensates for terminal cells having a 2:1 ratio.
+    pub comp: (f64, f64),
 
     /// Magnification/zoom factor.
     pub scalar: f64,
@@ -250,6 +265,7 @@ impl Default for Viewport {
         Self {
             im0: 0.0,
             re0: 0.0,
+            comp: (1., 2.),
             scalar: 0.1,
             max_iter: 100,
             holomorphic: Holomorphic::default(),
@@ -263,9 +279,11 @@ fn complex_at(viewport: &Viewport, bounds: (u16, u16), pos: (u16, u16)) -> Compl
     let offset: (i32, i32) = (i32::from(pos.0) - origin.0, i32::from(pos.1) - origin.1);
 
     Complex64 {
-        re: f64::from(offset.0) * viewport.scalar + viewport.re0,
+        re: viewport.comp.0 * f64::from(offset.0) * viewport.scalar + viewport.re0,
         // Hack - the doubling compensates for terminal cell x/y variation
-        im: 2. * f64::from(offset.1) * viewport.scalar + viewport.im0,
+        // XXX THIS REALLY NEEDS TO BE ADDRESSED IN A MORE FLEXIBLE FASHION.
+        //im: 2. * f64::from(offset.1) * viewport.scalar + viewport.im0,
+        im: viewport.comp.1 * f64::from(offset.1) * viewport.scalar + viewport.im0,
     }
 }
 
@@ -281,7 +299,7 @@ fn rgb(iterations: Escape) -> termion::color::Rgb {
     match iterations.map(|i| f64::from(i)) {
         None => termion::color::Rgb(0, 0, 0),
         Some(i) => {
-            let freq: f64 = 0.1;
+            let freq: f64 = 0.05;
             let coefficient: f64 = 127.;
             let offset: f64 = 127.;
 
@@ -385,7 +403,8 @@ fn write_ematrix(ematrix: &EMatrix) -> io::Result<()> {
         .duration_since(SystemTime::UNIX_EPOCH)
         .unwrap();
     let path = format!("mb-{}.png", unix_secs.as_secs() as u64);
-    unimplemented!()
+    let img = ematrix.clone().into_img();
+    img.save(path)
 }
 
 fn write_viewport(viewport: &Viewport) -> std::io::Result<()> {
@@ -442,7 +461,14 @@ fn main() -> std::result::Result<(), crate::Error> {
             // Write the viewport state to a JSON file.
             Some(Ok(Key::Char('p'))) => {
                 // TODO: handle write errors without panicking.
-                let _ = write_viewport(&viewport);
+                let mut zoomed_viewport = viewport.clone();
+                zoomed_viewport.scalar *= 0.05;
+                zoomed_viewport.comp.1 = 1.;
+                let mat = escape_matrix(&zoomed_viewport, (4000, 4000));
+                let _v = write_viewport(&zoomed_viewport);
+                eprintln!("viewport: {:?}", &_v);
+                let _e = write_ematrix(&mat);
+                eprintln!("ematrix: {:?}", &_e);
             }
 
             // Toggle between the Julia sets and the Mandelbrot sets.
@@ -450,14 +476,14 @@ fn main() -> std::result::Result<(), crate::Error> {
                 let new_holo: Holomorphic;
                 match viewport.holomorphic {
                     Holomorphic::Julia(ref j) => {
-                        new_holo = Holomorphic::Mandelbrot(Mandelbrot::from(j.clone()));
+                        new_holo = Holomorphic::Mandelbrot(Mandelbrot::from(j));
                     }
                     Holomorphic::Mandelbrot(ref m) => {
                         let c = Complex64 {
                             re: viewport.re0,
                             im: viewport.im0,
                         };
-                        new_holo = Holomorphic::Julia(Julia::from_c(m.clone(), c))
+                        new_holo = Holomorphic::Julia(Julia::from_c(m, c))
                     }
                 }
                 viewport.holomorphic = new_holo;
