@@ -39,9 +39,19 @@ struct Viewport {
 
     /// The maximum iterations before declaring a complex does not converge.
     pub max_iter: u32,
+}
 
-    /// The active holomorphic function.
-    pub holomorphic: Holomorphic,
+impl Viewport {
+    /// Compute the complex number for a given terminal position, viewport, and bounds.
+    fn complex_at(&self, bounds: (u16, u16), pos: (u16, u16)) -> Complex64 {
+        let origin: (i32, i32) = (i32::from(bounds.0 / 2), i32::from(bounds.1 / 2));
+        let offset: (i32, i32) = (i32::from(pos.0) - origin.0, i32::from(pos.1) - origin.1);
+
+        Complex64 {
+            re: self.comp.0 * f64::from(offset.0) * self.scalar + self.re0,
+            im: self.comp.1 * f64::from(offset.1) * self.scalar + self.im0,
+        }
+    }
 }
 
 impl Default for Viewport {
@@ -52,19 +62,23 @@ impl Default for Viewport {
             comp: (1., 2.),
             scalar: 0.1,
             max_iter: 100,
-            holomorphic: Holomorphic::default(),
         }
     }
 }
 
-/// Compute the complex number for a given terminal position, viewport, and bounds.
-fn complex_at(viewport: &Viewport, bounds: (u16, u16), pos: (u16, u16)) -> Complex64 {
-    let origin: (i32, i32) = (i32::from(bounds.0 / 2), i32::from(bounds.1 / 2));
-    let offset: (i32, i32) = (i32::from(pos.0) - origin.0, i32::from(pos.1) - origin.1);
+#[derive(Clone, Debug)]
+struct AppContext {
+    pub viewport: Viewport,
+    /// The active holomorphic function.
+    pub holomorphic: Holomorphic,
+}
 
-    Complex64 {
-        re: viewport.comp.0 * f64::from(offset.0) * viewport.scalar + viewport.re0,
-        im: viewport.comp.1 * f64::from(offset.1) * viewport.scalar + viewport.im0,
+impl Default for AppContext {
+    fn default() -> Self {
+        Self {
+            viewport: Viewport::default(),
+            holomorphic: Holomorphic::default()
+        }
     }
 }
 
@@ -82,7 +96,7 @@ fn cell_ansi(pos: (u16, u16), iterations: Escape) -> String {
     )
 }
 
-fn escape_matrix(viewport: &Viewport, bounds: (u16, u16)) -> EMatrix {
+fn escape_matrix(app: &AppContext, bounds: (u16, u16)) -> EMatrix {
     let y_iter = 0..bounds.0;
     let x_iter = 0..bounds.1;
 
@@ -90,8 +104,8 @@ fn escape_matrix(viewport: &Viewport, bounds: (u16, u16)) -> EMatrix {
         .cartesian_product(x_iter)
         .collect::<Vec<(u16, u16)>>()
         .par_iter()
-        .map(|pos| complex_at(&viewport, bounds, pos.clone()))
-        .map(|c| viewport.holomorphic.render(c, viewport.max_iter))
+        .map(|pos| app.viewport.complex_at(bounds, pos.clone()))
+        .map(|c| app.holomorphic.render(c, app.viewport.max_iter))
         .collect();
 
     EMatrix::from_vec(usize::from(bounds.0), usize::from(bounds.1), escapes)
@@ -108,11 +122,11 @@ fn ematrix_to_frame(mat: &EMatrix, bounds: (u16, u16)) -> String {
         .collect()
 }
 
-fn draw_frame<W: Write>(screen: &mut W, viewport: &Viewport) -> Result<(), crate::Error> {
+fn draw_frame<W: Write>(screen: &mut W, app: &AppContext) -> Result<(), crate::Error> {
     let bounds = termion::terminal_size()?;
 
     let render_start: Instant = Instant::now();
-    let mat = escape_matrix(&viewport, bounds);
+    let mat = escape_matrix(&app, bounds);
     let buffer = ematrix_to_frame(&mat, bounds);
     let render_stop: Instant = Instant::now();
 
@@ -125,11 +139,11 @@ fn draw_frame<W: Write>(screen: &mut W, viewport: &Viewport) -> Result<(), crate
     let draw_delta = draw_stop - draw_start;
 
     let labels = vec![
-        format!("viewport = {:?}", &viewport),
-        format!("re     = {:.4e}", viewport.re0),
-        format!("im     = {:.4e}", viewport.im0),
-        format!("iter   = {}", viewport.max_iter),
-        format!("scalar = {:.4e}", viewport.scalar),
+        format!("viewport = {:?}", &app.viewport),
+        format!("re     = {:.4e}", app.viewport.re0),
+        format!("im     = {:.4e}", app.viewport.im0),
+        format!("iter   = {}", app.viewport.max_iter),
+        format!("scalar = {:.4e}", app.viewport.scalar),
         format!("render = {}ms", render_delta.as_millis()),
         format!("draw   = {}ms", draw_delta.as_millis()),
     ];
@@ -158,14 +172,14 @@ fn write_ematrix(ematrix: &EMatrix) -> io::Result<()> {
     img.save(path)
 }
 
-fn write_viewport(viewport: &Viewport) -> std::io::Result<()> {
+fn write_viewport(app: &AppContext) -> std::io::Result<()> {
     let unix_secs = SystemTime::now()
         .duration_since(SystemTime::UNIX_EPOCH)
         .unwrap();
     let path = format!("mb-{}.json", unix_secs.as_secs() as u64);
 
     let mut f = File::create(path)?;
-    let buf = serde_json::to_string(&viewport).unwrap();
+    let buf = serde_json::to_string(&app.viewport).unwrap();
     f.write_all(&buf.as_bytes())
 }
 
@@ -175,48 +189,48 @@ fn main() -> std::result::Result<(), crate::Error> {
     let stdout = io::stdout().into_raw_mode().unwrap();
     let mut screen = AlternateScreen::from(stdout);
 
-    let mut viewport = Viewport::default();
+    let mut app = AppContext::default();
     write!(screen, "{}", ToAlternateScreen).unwrap();
     write!(screen, "{}", termion::cursor::Hide).unwrap();
 
     loop {
-        draw_frame(&mut screen, &viewport)?;
+        draw_frame(&mut screen, &app)?;
         match (&mut stdin).keys().next() {
             Some(Ok(Key::Char('q'))) => break,
 
             // Zoom in keys - shift key is optional.
-            Some(Ok(Key::Char('+'))) => viewport.scalar /= 2.0,
-            Some(Ok(Key::Char('='))) => viewport.scalar /= 2.0,
+            Some(Ok(Key::Char('+'))) => app.viewport.scalar /= 2.0,
+            Some(Ok(Key::Char('='))) => app.viewport.scalar /= 2.0,
 
             // Zoom out keys - shift key is optional.
-            Some(Ok(Key::Char('-'))) => viewport.scalar *= 2.0,
-            Some(Ok(Key::Char('_'))) => viewport.scalar *= 2.0,
+            Some(Ok(Key::Char('-'))) => app.viewport.scalar *= 2.0,
+            Some(Ok(Key::Char('_'))) => app.viewport.scalar *= 2.0,
 
             // Move left/right along the real axis.
-            Some(Ok(Key::Char('a'))) => viewport.re0 -= viewport.scalar * 10.0,
-            Some(Ok(Key::Char('d'))) => viewport.re0 += viewport.scalar * 10.0,
+            Some(Ok(Key::Char('a'))) => app.viewport.re0 -= app.viewport.scalar * 10.0,
+            Some(Ok(Key::Char('d'))) => app.viewport.re0 += app.viewport.scalar * 10.0,
 
             // Move up and down on the imaginary axis.
-            Some(Ok(Key::Char('w'))) => viewport.im0 -= viewport.scalar * 10.0,
-            Some(Ok(Key::Char('s'))) => viewport.im0 += viewport.scalar * 10.0,
+            Some(Ok(Key::Char('w'))) => app.viewport.im0 -= app.viewport.scalar * 10.0,
+            Some(Ok(Key::Char('s'))) => app.viewport.im0 += app.viewport.scalar * 10.0,
 
             // Increase the limit on iterations to escape.
-            Some(Ok(Key::Char('t'))) => viewport.max_iter += 25,
-            Some(Ok(Key::Char('g'))) => viewport.max_iter -= 25,
+            Some(Ok(Key::Char('t'))) => app.viewport.max_iter += 25,
+            Some(Ok(Key::Char('g'))) => app.viewport.max_iter -= 25,
 
             // Reset to default.
             Some(Ok(Key::Char('m'))) => {
-                std::mem::replace(&mut viewport, Viewport::default());
+                std::mem::replace(&mut app.viewport, Viewport::default());
             }
 
             // Write the viewport state to a JSON file.
             Some(Ok(Key::Char('p'))) => {
                 // TODO: handle write errors without panicking.
-                let mut zoomed_viewport = viewport.clone();
-                zoomed_viewport.scalar *= 0.05;
-                zoomed_viewport.comp.1 = 1.;
-                let mat = escape_matrix(&zoomed_viewport, (4000, 4000));
-                let _v = write_viewport(&zoomed_viewport);
+                let mut imgen_app = app.clone();
+                imgen_app.viewport.scalar *= 0.05;
+                imgen_app.viewport.comp.1 = 1.;
+                let mat = escape_matrix(&imgen_app, (4000, 4000));
+                let _v = write_viewport(&imgen_app);
                 eprintln!("viewport: {:?}", &_v);
                 let _e = write_ematrix(&mat);
                 eprintln!("ematrix: {:?}", &_e);
@@ -225,19 +239,19 @@ fn main() -> std::result::Result<(), crate::Error> {
             // Toggle between the Julia sets and the Mandelbrot sets.
             Some(Ok(Key::Char('x'))) => {
                 let new_holo: Holomorphic;
-                match viewport.holomorphic {
+                match app.holomorphic {
                     Holomorphic::Julia(ref j) => {
                         new_holo = Holomorphic::Mandelbrot(Mandelbrot::from(j));
                     }
                     Holomorphic::Mandelbrot(ref m) => {
                         let c = Complex64 {
-                            re: viewport.re0,
-                            im: viewport.im0,
+                            re: app.viewport.re0,
+                            im: app.viewport.im0,
                         };
                         new_holo = Holomorphic::Julia(Julia::from_c(m, c))
                     }
                 }
-                viewport.holomorphic = new_holo;
+                app.holomorphic = new_holo;
             }
 
             _ => {}
