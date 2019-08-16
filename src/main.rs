@@ -83,6 +83,29 @@ impl Default for AppContext {
     }
 }
 
+impl AppContext {
+    /// Generate an escape matrix from the current application context.
+    ///
+    /// # Performance
+    ///
+    /// This fn is the most expensive operation in the application.
+    ///
+    fn to_ematrix(&self, bounds: (u16, u16)) -> EMatrix {
+        let y_iter = 0..bounds.0;
+        let x_iter = 0..bounds.1;
+
+        let escapes: Vec<Escape> = y_iter
+            .cartesian_product(x_iter)
+            .collect::<Vec<(u16, u16)>>()
+            .par_iter()
+            .map(|pos| self.viewport.complex_at(bounds, pos.clone()))
+            .map(|c| self.holomorphic.render(c, self.viewport.max_iter))
+            .collect();
+
+        EMatrix::from_vec(usize::from(bounds.0), usize::from(bounds.1), escapes)
+    }
+}
+
 /// Given XY coordinates and computed mandelbrot iteration,
 /// compute the necessary ANSI to move the cursor and paint the cell.
 ///
@@ -95,21 +118,6 @@ fn cell_ansi(pos: (u16, u16), iterations: Escape) -> String {
         termion::color::Bg(rgb(iterations)),
         " "
     )
-}
-
-fn escape_matrix(app: &AppContext, bounds: (u16, u16)) -> EMatrix {
-    let y_iter = 0..bounds.0;
-    let x_iter = 0..bounds.1;
-
-    let escapes: Vec<Escape> = y_iter
-        .cartesian_product(x_iter)
-        .collect::<Vec<(u16, u16)>>()
-        .par_iter()
-        .map(|pos| app.viewport.complex_at(bounds, pos.clone()))
-        .map(|c| app.holomorphic.render(c, app.viewport.max_iter))
-        .collect();
-
-    EMatrix::from_vec(usize::from(bounds.0), usize::from(bounds.1), escapes)
 }
 
 fn ematrix_to_frame(mat: &EMatrix, bounds: (u16, u16)) -> String {
@@ -127,7 +135,7 @@ fn draw_frame<W: Write>(screen: &mut W, app: &AppContext) -> Result<(), crate::E
     let bounds = termion::terminal_size()?;
 
     let render_start: Instant = Instant::now();
-    let mat = escape_matrix(&app, bounds);
+    let mat = app.to_ematrix(bounds);
     let buffer = ematrix_to_frame(&mat, bounds);
     let render_stop: Instant = Instant::now();
 
@@ -230,7 +238,7 @@ fn main() -> std::result::Result<(), crate::Error> {
                 let mut imgen_app = app.clone();
                 imgen_app.viewport.scalar *= 0.05;
                 imgen_app.viewport.comp.1 = 1.;
-                let mat = escape_matrix(&imgen_app, (4000, 4000));
+                let mat = app.to_ematrix((4000, 4000));
                 let _v = write_viewport(&imgen_app);
                 eprintln!("viewport: {:?}", &_v);
                 let _e = write_ematrix(&mat);
