@@ -38,6 +38,68 @@ impl From<io::Error> for Error {
 /// An Escape represents the status of an evaluated point's escape iteration.
 pub type Escape = Option<u32>;
 
+/// A single color channel for HSV/RGB conversion.
+#[derive(Debug, Clone)]
+pub struct SineChannel {
+    pub coef: f64,
+    pub freq: f64,
+    pub phase: f64,
+    pub offset: f64,
+}
+
+impl SineChannel {
+    const COEF: f64 = 127.;
+    const FREQ: f64 = 0.05;
+    const OFFSET: f64 = 127.;
+
+    pub fn compute(&self, i: f64) -> u8 {
+        (self.coef * ((i * self.freq) + self.phase).sin() + self.offset) as u8
+    }
+
+    pub fn sunset() -> (Self, Self, Self) {
+        (
+            Self {
+                coef: Self::COEF,
+                freq: Self::FREQ,
+                phase: 0.,
+                offset: Self::OFFSET,
+            },
+            Self {
+                coef: Self::COEF,
+                freq: Self::FREQ,
+                phase: std::f64::consts::PI / 3.,
+                offset: Self::OFFSET,
+            },
+            Self {
+                coef: Self::COEF,
+                freq: Self::FREQ,
+                phase: std::f64::consts::PI * 2. / 3.,
+                offset: Self::OFFSET,
+            }
+        )
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct SineRGB {
+    channels: (SineChannel, SineChannel, SineChannel),
+}
+
+impl SineRGB {
+    fn rgb(&self, escape: Escape) -> (u8, u8, u8) {
+        match escape.map(|iters| f64::from(iters)) {
+            None => (0,0,0),
+            Some(i) => {
+                (
+                    self.channels.0.compute(i),
+                    self.channels.1.compute(i),
+                    self.channels.2.compute(i),
+                )
+            }
+        }
+    }
+}
+
 /// Convert Mandelbrot escape iterations to an RGB value.
 ///
 /// Color is computed by representing (approximate) RGB values with 3 sine waves.
