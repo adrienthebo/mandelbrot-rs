@@ -1,5 +1,10 @@
 //! Mandelbrot
 
+extern crate num;
+extern crate serde;
+
+use num::complex::Complex64;
+use serde::Serialize;
 use std::io;
 
 #[derive(Debug)]
@@ -53,7 +58,10 @@ impl EMatrix {
     }
 
     pub fn iter(&self) -> EMatrixRefIterator {
-        EMatrixRefIterator { mat: self, index: 0 }
+        EMatrixRefIterator {
+            mat: self,
+            index: 0,
+        }
     }
 
     pub fn into_img(self) -> image::RgbImage {
@@ -92,14 +100,14 @@ impl std::iter::IntoIterator for EMatrix {
     fn into_iter(self) -> Self::IntoIter {
         EMatrixIterator {
             mat: self,
-            index: 0
+            index: 0,
         }
     }
 }
 
 pub struct EMatrixRefIterator<'a> {
     mat: &'a EMatrix,
-    index: usize
+    index: usize,
 }
 
 impl<'a> std::iter::Iterator for EMatrixRefIterator<'a> {
@@ -121,7 +129,10 @@ impl<'a> IntoIterator for &'a EMatrix {
     type IntoIter = EMatrixRefIterator<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
-        EMatrixRefIterator { mat: self, index: 0 }
+        EMatrixRefIterator {
+            mat: self,
+            index: 0,
+        }
     }
 }
 
@@ -151,5 +162,100 @@ pub fn rgb(iterations: Escape) -> termion::color::Rgb {
 
             termion::color::Rgb(red as u8, green as u8, blue as u8)
         }
+    }
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct Mandelbrot {
+    pub exp: f64,
+}
+
+impl Default for Mandelbrot {
+    fn default() -> Self {
+        Mandelbrot { exp: 2. }
+    }
+}
+
+impl From<&Julia> for Mandelbrot {
+    fn from(j: &Julia) -> Self {
+        Mandelbrot { exp: j.exp }
+    }
+}
+
+impl Mandelbrot {
+    pub fn render(&self, c: Complex64, limit: u32) -> Escape {
+        let mut z = Complex64 { re: 0.0, im: 0.0 };
+        for i in 0..limit {
+            z *= z;
+            z += c;
+            if z.norm_sqr() > 4.0 {
+                return Some(i);
+            }
+        }
+
+        return None;
+    }
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct Julia {
+    pub exp: f64,
+    pub c_offset: Complex64,
+}
+
+impl Default for Julia {
+    fn default() -> Self {
+        Julia {
+            exp: 2.,
+            c_offset: Complex64 { re: 0.6, im: 0.4 },
+        }
+    }
+}
+
+impl Julia {
+    /// Create a Julia set with a given mandelbrot algorithm and
+    /// re/im coordinates.
+    pub fn from_c(m: &Mandelbrot, c_offset: Complex64) -> Self {
+        Julia {
+            exp: m.exp,
+            c_offset: c_offset,
+        }
+    }
+
+    fn render(&self, c: Complex64, limit: u32) -> Escape {
+        let mut z = c.clone();
+        for i in 0..limit {
+            z *= z;
+            z += self.c_offset;
+            if z.norm_sqr() > 4.0 {
+                return Some(i);
+            }
+        }
+
+        return None;
+    }
+}
+
+/// A complex-valued function that is locally differentiable.
+///
+/// In more reasonable terms, this is either a Julia set or a Mandelbrot set.
+#[derive(Clone, Debug, Serialize)]
+pub enum Holomorphic {
+    Julia(Julia),
+    Mandelbrot(Mandelbrot),
+}
+
+impl Holomorphic {
+    pub fn render(&self, c: Complex64, limit: u32) -> Escape {
+        match self {
+            Holomorphic::Julia(j) => j.render(c, limit),
+            Holomorphic::Mandelbrot(m) => m.render(c, limit),
+        }
+    }
+}
+
+impl Default for Holomorphic {
+    fn default() -> Self {
+        Holomorphic::Mandelbrot(Mandelbrot::default())
     }
 }
