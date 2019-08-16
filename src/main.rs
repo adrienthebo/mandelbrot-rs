@@ -149,7 +149,6 @@ fn draw_frame<W: Write>(screen: &mut W, viewport: &Viewport) -> Result<(), crate
     Ok(())
 }
 
-#[allow(unused)]
 fn write_ematrix(ematrix: &EMatrix) -> io::Result<()> {
     let unix_secs = SystemTime::now()
         .duration_since(SystemTime::UNIX_EPOCH)
