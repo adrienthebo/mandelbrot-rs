@@ -40,9 +40,11 @@ impl EMatrix {
 
     pub fn into_img(self) -> image::RgbImage {
         let mat = self.0;
+        let sr = crate::SineRGB::default();
+
         image::RgbImage::from_fn(mat.ncols() as u32, mat.nrows() as u32, move |x, y| {
             let escape = mat.index((y as usize, x as usize));
-            let term_rgb = crate::rgb(*escape);
+            let term_rgb = sr.rgb(*escape);
             image::Rgb([term_rgb.0, term_rgb.1, term_rgb.2])
         })
     }

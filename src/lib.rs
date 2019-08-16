@@ -85,8 +85,22 @@ pub struct SineRGB {
     channels: (SineChannel, SineChannel, SineChannel),
 }
 
+impl Default for SineRGB {
+    fn default() -> Self {
+        Self { channels: SineChannel::sunset() }
+    }
+}
+
 impl SineRGB {
-    fn rgb(&self, escape: Escape) -> (u8, u8, u8) {
+    /// Convert Mandelbrot escape iterations to an RGB value.
+    ///
+    /// Color is computed by representing (approximate) RGB values with 3 sine waves.
+    ///
+    /// Note: To produce true RGB the sine waves need to be 120 degrees (2pi/3) apart.
+    /// Using a 60 degree phase offset produces some beautiful sunset colors, so this
+    /// isn't a true RGB conversion. It delights me to inform the reader that in this
+    /// case form trumps function, so deal with it.
+    pub fn rgb(&self, escape: Escape) -> (u8, u8, u8) {
         match escape.map(|iters| f64::from(iters)) {
             None => (0,0,0),
             Some(i) => {
@@ -96,35 +110,6 @@ impl SineRGB {
                     self.channels.2.compute(i),
                 )
             }
-        }
-    }
-}
-
-/// Convert Mandelbrot escape iterations to an RGB value.
-///
-/// Color is computed by representing (approximate) RGB values with 3 sine waves.
-///
-/// Note: To produce true RGB the sine waves need to be 120 degrees (2pi/3) apart.
-/// Using a 60 degree phase offset produces some beautiful sunset colors, so this
-/// isn't a true RGB conversion. It delights me to inform the reader that in this
-/// case form trumps function, so deal with it.
-pub fn rgb(iterations: Escape) -> termion::color::Rgb {
-    match iterations.map(|i| f64::from(i)) {
-        None => termion::color::Rgb(0, 0, 0),
-        Some(i) => {
-            let freq: f64 = 0.05;
-            let coefficient: f64 = 127.;
-            let offset: f64 = 127.;
-
-            let rphase: f64 = 0.;
-            let gphase: f64 = std::f64::consts::PI / 3.;
-            let bphase: f64 = std::f64::consts::PI * 2. / 3.;
-
-            let red = ((i * freq) + rphase).sin() * coefficient + offset;
-            let green = ((i * freq) + gphase).sin() * coefficient + offset;
-            let blue = ((i * freq) + bphase).sin() * coefficient + offset;
-
-            termion::color::Rgb(red as u8, green as u8, blue as u8)
         }
     }
 }

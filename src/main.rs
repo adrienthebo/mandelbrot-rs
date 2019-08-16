@@ -111,11 +111,16 @@ impl AppContext {
 ///
 /// Note: generating strings for every element is highly inefficient; we
 /// should really be appending to a string slice. :shrug:
-fn cell_ansi(pos: (u16, u16), iterations: Escape) -> String {
+fn cell_ansi(pos: (u16, u16), escape: Escape) -> String {
+    // PERF: a coloring object should be passed instead of generated for each value.
+    let sr = SineRGB::default();
+    let rgb = sr.rgb(escape);
+    let color = termion::color::Rgb(rgb.0, rgb.1, rgb.2);
+
     format!(
         "{}{}{}",
         termion::cursor::Goto(pos.0 + 1, pos.1 + 1),
-        termion::color::Bg(rgb(iterations)),
+        termion::color::Bg(color),
         " "
     )
 }
