@@ -41,6 +41,7 @@ impl EMatrix {
     }
 }
 
+/// An iterator that consumes and returns elements of an `EMatrix` in minor/major order.
 pub struct EMatrixIterator {
     mat: EMatrix,
     index: usize,
@@ -60,6 +61,7 @@ impl std::iter::Iterator for EMatrixIterator {
     }
 }
 
+/// An iterator over an `&Ematrix` in minor/major order.
 impl std::iter::IntoIterator for EMatrix {
     type Item = Escape;
     type IntoIter = EMatrixIterator;
@@ -72,6 +74,7 @@ impl std::iter::IntoIterator for EMatrix {
     }
 }
 
+/// An iterator over an `&mut Ematrix` in minor/major order.
 pub struct EMatrixRefIterator<'a> {
     mat: &'a EMatrix,
     index: usize,
@@ -102,4 +105,3 @@ impl<'a> IntoIterator for &'a EMatrix {
         }
     }
 }
-

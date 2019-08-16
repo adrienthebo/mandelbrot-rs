@@ -68,6 +68,7 @@ impl Default for Viewport {
 
 #[derive(Clone, Debug)]
 struct AppContext {
+    /// The current viewport.
     pub viewport: Viewport,
     /// The active holomorphic function.
     pub holomorphic: Holomorphic,
