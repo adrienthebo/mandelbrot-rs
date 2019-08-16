@@ -31,6 +31,13 @@ impl EMatrix {
         }
     }
 
+    pub fn into_iter(self) -> EMatrixIterator {
+        EMatrixIterator {
+            mat: self,
+            index: 0
+        }
+    }
+
     pub fn into_img(self) -> image::RgbImage {
         let mat = self.0;
         image::RgbImage::from_fn(mat.ncols() as u32, mat.nrows() as u32, move |x, y| {
