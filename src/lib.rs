@@ -9,6 +9,8 @@ use std::io;
 
 pub mod ematrix;
 pub use ematrix::*;
+pub mod loc;
+pub use loc::*;
 
 #[derive(Debug)]
 pub struct Error {
@@ -37,6 +39,9 @@ impl From<io::Error> for Error {
 
 /// An Escape represents the status of an evaluated point's escape iteration.
 pub type Escape = Option<u32>;
+
+/// The bounds for a given image, in column major order.
+pub type Bounds = (u16, u16);
 
 /// A single color channel for HSV/RGB conversion.
 #[derive(Debug, Clone)]
