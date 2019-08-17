@@ -63,6 +63,58 @@ impl AppContext {
     }
 }
 
+#[derive(Debug,Clone,Copy)]
+enum AppCmd {
+    TranslateUp,
+    TranslateDown,
+    TranslateLeft,
+    TranslateRight,
+    ScaleIn,
+    ScaleOut,
+    IncIterations,
+    DecIterations,
+    Save,
+    ToggleHolo,
+    Reset,
+    Quit,
+    Unhandled(Key),
+}
+
+impl From<Key> for AppCmd {
+    fn from(key: Key) -> AppCmd {
+        match key {
+            Key::Char('q') => AppCmd::Quit,
+
+            // Zoom in/out - shift key is optional.
+            Key::Char('+') | Key::Char('=') => AppCmd::ScaleIn,
+            Key::Char('-') | Key::Char('_') => AppCmd::ScaleOut,
+
+            // Move left/right along the real axis.
+            Key::Char('a') => AppCmd::TranslateLeft,
+            Key::Char('d') => AppCmd::TranslateRight,
+
+            // Move up and down on the imaginary axis.
+            Key::Char('w') => AppCmd::TranslateUp,
+            Key::Char('s') => AppCmd::TranslateDown,
+
+            // Increase the limit on iterations to escape.
+            Key::Char('t') => AppCmd::IncIterations,
+            Key::Char('g') => AppCmd::DecIterations,
+
+            // Reset the zoom level to default.
+            Key::Char('m') => AppCmd::Reset,
+
+            // Generate a state file and image for the current location.
+            Key::Char('p') => AppCmd::Save,
+
+            // Toggle between the Julia sets and the Mandelbrot sets.
+            Key::Char('x') => AppCmd::ToggleHolo,
+
+            u => AppCmd::Unhandled(u),
+        }
+    }
+}
+
 /// Given XY coordinates and computed mandelbrot iteration,
 /// compute the necessary ANSI to move the cursor and paint the cell.
 ///
