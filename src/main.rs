@@ -19,14 +19,14 @@ use termion::screen::*;
 use mandelbrot::*;
 
 #[derive(Clone, Debug)]
-struct AppContext {
+struct RenderContext {
     /// The current loc.
     pub loc: Loc,
     /// The active holomorphic function.
     pub holomorphic: Holomorphic,
 }
 
-impl Default for AppContext {
+impl Default for RenderContext {
     fn default() -> Self {
         Self {
             loc: Loc::default(),
@@ -35,7 +35,7 @@ impl Default for AppContext {
     }
 }
 
-impl AppContext {
+impl RenderContext {
     /// Generate an escape matrix from the current application context.
     ///
     /// # Performance
@@ -145,9 +145,9 @@ fn ematrix_to_frame(mat: &EMatrix, bounds: Bounds) -> String {
         .collect()
 }
 
-fn draw_frame<W: Write>(screen: &mut W, app: &AppContext, bounds: Bounds) -> Result<(), crate::Error> {
+fn draw_frame<W: Write>(screen: &mut W, rctx: &RenderContext, bounds: Bounds) -> Result<(), crate::Error> {
     let render_start: Instant = Instant::now();
-    let mat = app.render(bounds);
+    let mat = rctx.render(bounds);
     let buffer = ematrix_to_frame(&mat, bounds);
     let render_stop: Instant = Instant::now();
 
@@ -160,11 +160,11 @@ fn draw_frame<W: Write>(screen: &mut W, app: &AppContext, bounds: Bounds) -> Res
     let draw_delta = draw_stop - draw_start;
 
     let labels = vec![
-        format!("holo   = {:?}", &app.holomorphic),
-        format!("re     = {:.4e}", app.loc.re0),
-        format!("im     = {:.4e}", app.loc.im0),
-        format!("iter   = {}", app.loc.max_iter),
-        format!("scalar = {:.4e}", app.loc.scalar),
+        format!("holo   = {:?}", &rctx.holomorphic),
+        format!("re     = {:.4e}", rctx.loc.re0),
+        format!("im     = {:.4e}", rctx.loc.im0),
+        format!("iter   = {}", rctx.loc.max_iter),
+        format!("scalar = {:.4e}", rctx.loc.scalar),
         format!("render = {}ms", render_delta.as_millis()),
         format!("draw   = {}ms", draw_delta.as_millis()),
     ];
@@ -184,14 +184,14 @@ fn draw_frame<W: Write>(screen: &mut W, app: &AppContext, bounds: Bounds) -> Res
     Ok(())
 }
 
-fn screenshot(app: &AppContext, bounds: Bounds) -> Result<(), crate::Error> {
+fn screenshot(rctx: &RenderContext, bounds: Bounds) -> Result<(), crate::Error> {
     // TODO: handle write errors without panicking.
     let imgen_bounds = (4000, 4000);
 
-    let mut imgen_loc = app.loc.scale(bounds, imgen_bounds);
+    let mut imgen_loc = rctx.loc.scale(bounds, imgen_bounds);
     imgen_loc.comp.1 = 1.;
 
-    let imgen_app = AppContext { loc: imgen_loc, holomorphic: app.holomorphic.clone() };
+    let imgen_app = RenderContext { loc: imgen_loc, holomorphic: rctx.holomorphic.clone() };
     let mat = imgen_app.render(imgen_bounds);
 
     write_loc(&imgen_app)?;
@@ -208,14 +208,14 @@ fn write_ematrix(ematrix: &EMatrix) -> io::Result<()> {
     img.save(path)
 }
 
-fn write_loc(app: &AppContext) -> std::io::Result<()> {
+fn write_loc(rctx: &RenderContext) -> std::io::Result<()> {
     let unix_secs = SystemTime::now()
         .duration_since(SystemTime::UNIX_EPOCH)
         .unwrap();
     let path = format!("mb-{}.json", unix_secs.as_secs() as u64);
 
     let mut f = File::create(path)?;
-    let buf = serde_json::to_string(&app.loc).unwrap();
+    let buf = serde_json::to_string(&rctx.loc).unwrap();
     f.write_all(&buf.as_bytes())
 }
 
@@ -225,58 +225,58 @@ fn main() -> std::result::Result<(), crate::Error> {
     let stdout = io::stdout().into_raw_mode().unwrap();
     let mut screen = AlternateScreen::from(stdout);
 
-    let mut app = AppContext::with_loc(Loc::for_bounds(termion::terminal_size()?));
+    let mut rctx = RenderContext::with_loc(Loc::for_bounds(termion::terminal_size()?));
     write!(screen, "{}", ToAlternateScreen).unwrap();
     write!(screen, "{}", termion::cursor::Hide).unwrap();
 
     loop {
         let bounds = termion::terminal_size()?;
-        draw_frame(&mut screen, &app, bounds)?;
+        draw_frame(&mut screen, &rctx, bounds)?;
         match (&mut stdin).keys().next() {
             Some(Ok(Key::Char('q'))) => break,
 
             // Zoom in keys - shift key is optional.
-            Some(Ok(Key::Char('+'))) => app.loc.scalar /= 2.0,
-            Some(Ok(Key::Char('='))) => app.loc.scalar /= 2.0,
+            Some(Ok(Key::Char('+'))) => rctx.loc.scalar /= 2.0,
+            Some(Ok(Key::Char('='))) => rctx.loc.scalar /= 2.0,
 
             // Zoom out keys - shift key is optional.
-            Some(Ok(Key::Char('-'))) => app.loc.scalar *= 2.0,
-            Some(Ok(Key::Char('_'))) => app.loc.scalar *= 2.0,
+            Some(Ok(Key::Char('-'))) => rctx.loc.scalar *= 2.0,
+            Some(Ok(Key::Char('_'))) => rctx.loc.scalar *= 2.0,
 
             // Move left/right along the real axis.
-            Some(Ok(Key::Char('a'))) => app.loc.re0 -= app.loc.scalar * 10.0,
-            Some(Ok(Key::Char('d'))) => app.loc.re0 += app.loc.scalar * 10.0,
+            Some(Ok(Key::Char('a'))) => rctx.loc.re0 -= rctx.loc.scalar * 10.0,
+            Some(Ok(Key::Char('d'))) => rctx.loc.re0 += rctx.loc.scalar * 10.0,
 
             // Move up and down on the imaginary axis.
-            Some(Ok(Key::Char('w'))) => app.loc.im0 -= app.loc.scalar * 10.0,
-            Some(Ok(Key::Char('s'))) => app.loc.im0 += app.loc.scalar * 10.0,
+            Some(Ok(Key::Char('w'))) => rctx.loc.im0 -= rctx.loc.scalar * 10.0,
+            Some(Ok(Key::Char('s'))) => rctx.loc.im0 += rctx.loc.scalar * 10.0,
 
             // Increase the limit on iterations to escape.
-            Some(Ok(Key::Char('t'))) => app.loc.max_iter += 25,
-            Some(Ok(Key::Char('g'))) => app.loc.max_iter -= 25,
+            Some(Ok(Key::Char('t'))) => rctx.loc.max_iter += 25,
+            Some(Ok(Key::Char('g'))) => rctx.loc.max_iter -= 25,
 
             // Reset to default.
             Some(Ok(Key::Char('m'))) => {
-                std::mem::replace(&mut app.loc, Loc::default());
+                std::mem::replace(&mut rctx.loc, Loc::default());
             }
 
             // Write the loc state to a JSON file.
             Some(Ok(Key::Char('p'))) => {
-                screenshot(&app, bounds);
+                screenshot(&rctx, bounds);
             }
 
             // Toggle between the Julia sets and the Mandelbrot sets.
             Some(Ok(Key::Char('x'))) => {
                 let new_holo: Holomorphic;
-                match app.holomorphic {
+                match rctx.holomorphic {
                     Holomorphic::Julia(ref j) => {
                         new_holo = Holomorphic::Mandelbrot(Mandelbrot::from(j));
                     }
                     Holomorphic::Mandelbrot(ref m) => {
-                        new_holo = Holomorphic::Julia(Julia::from_c(m, app.loc.origin()))
+                        new_holo = Holomorphic::Julia(Julia::from_c(m, rctx.loc.origin()))
                     }
                 }
-                app.holomorphic = new_holo;
+                rctx.holomorphic = new_holo;
             }
 
             _ => {}
