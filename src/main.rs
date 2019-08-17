@@ -26,10 +26,10 @@ type Bounds = (u16, u16);
 /// A location, scalar, and rendering context for a position in the complex plane.
 #[derive(Clone, Debug, Serialize)]
 struct Loc {
-    /// The imaginary/Y axis origin.
+    /// The imaginary axis origin.
     pub im0: f64,
 
-    /// The real/X axis origin.
+    /// The real axis origin.
     pub re0: f64,
 
     /// Dimensional scaling factors in case the canvas is not square.
@@ -45,6 +45,23 @@ struct Loc {
 }
 
 impl Loc {
+    /// Create a location scaled appropriately for a given bounds.
+    fn for_bounds(bounds: Bounds) -> Self {
+        let re_steps: f64 = 1.5 / f64::from(bounds.0);
+        let im_steps: f64 = 1.5 / f64::from(bounds.1);
+
+        let scalar = if re_steps > im_steps { re_steps } else { im_steps };
+
+        Self {
+            im0: 0.,
+            re0: -0.5,
+            comp: (1., 2.),
+            scalar: scalar,
+            max_iter: 100
+        }
+    }
+
+
     /// Determine the complex value at a given offset of the origin with respect to the provided
     /// bounds.
     fn complex_at(&self, bounds: Bounds, pos: (u16, u16)) -> Complex64 {
@@ -240,7 +257,7 @@ fn main() -> std::result::Result<(), crate::Error> {
     let stdout = io::stdout().into_raw_mode().unwrap();
     let mut screen = AlternateScreen::from(stdout);
 
-    let mut app = AppContext::default();
+    let mut app = AppContext::with_loc(Loc::for_bounds(termion::terminal_size()?));
     write!(screen, "{}", ToAlternateScreen).unwrap();
     write!(screen, "{}", termion::cursor::Hide).unwrap();
 
