@@ -52,6 +52,18 @@ impl Viewport {
             im: self.comp.1 * f64::from(offset.1) * self.scalar + self.im0,
         }
     }
+
+    /// Given a current bounds and a new bounds, create a scaled viewport.
+    ///
+    /// This acts to downscale/upscale a viewport.
+    pub fn scale(&self, old: (u16, u16), new: (u16, u16)) -> Self {
+        let re_scalar = f64::from(new.0) / f64::from(old.0);
+        let im_scalar = f64::from(new.1) / f64::from(old.1);
+        let avg = (re_scalar + im_scalar) / 2.;
+        let scalar = self.scalar / avg;
+
+        Self { scalar, .. *self }
+    }
 }
 
 impl Default for Viewport {
@@ -136,9 +148,7 @@ fn ematrix_to_frame(mat: &EMatrix, bounds: (u16, u16)) -> String {
         .collect()
 }
 
-fn draw_frame<W: Write>(screen: &mut W, app: &AppContext) -> Result<(), crate::Error> {
-    let bounds = termion::terminal_size()?;
-
+fn draw_frame<W: Write>(screen: &mut W, app: &AppContext, bounds: (u16, u16)) -> Result<(), crate::Error> {
     let render_start: Instant = Instant::now();
     let mat = app.to_ematrix(bounds);
     let buffer = ematrix_to_frame(&mat, bounds);
@@ -208,7 +218,8 @@ fn main() -> std::result::Result<(), crate::Error> {
     write!(screen, "{}", termion::cursor::Hide).unwrap();
 
     loop {
-        draw_frame(&mut screen, &app)?;
+        let bounds = termion::terminal_size()?;
+        draw_frame(&mut screen, &app, bounds)?;
         match (&mut stdin).keys().next() {
             Some(Ok(Key::Char('q'))) => break,
 
@@ -241,9 +252,13 @@ fn main() -> std::result::Result<(), crate::Error> {
             Some(Ok(Key::Char('p'))) => {
                 // TODO: handle write errors without panicking.
                 let mut imgen_app = app.clone();
-                imgen_app.viewport.scalar *= 0.05;
+
+                let imgen_bounds = (4000, 4000);
+                let imgen_viewport = app.viewport.scale(bounds, imgen_bounds);
+                imgen_app.viewport = imgen_viewport;
                 imgen_app.viewport.comp.1 = 1.;
-                let mat = app.to_ematrix((4000, 4000));
+
+                let mat = imgen_app.to_ematrix(imgen_bounds);
                 let _v = write_viewport(&imgen_app);
                 eprintln!("viewport: {:?}", &_v);
                 let _e = write_ematrix(&mat);
