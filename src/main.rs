@@ -20,6 +20,9 @@ use termion::raw::IntoRawMode;
 use termion::screen::*;
 use mandelbrot::*;
 
+/// The bounds for a given image, in column major order.
+type Bounds = (u16, u16);
+
 /// The rendering context or view for a given position.
 #[derive(Clone, Debug, Serialize)]
 struct Viewport {
@@ -43,7 +46,7 @@ struct Viewport {
 
 impl Viewport {
     /// Compute the complex number for a given terminal position, viewport, and bounds.
-    fn complex_at(&self, bounds: (u16, u16), pos: (u16, u16)) -> Complex64 {
+    fn complex_at(&self, bounds: Bounds, pos: (u16, u16)) -> Complex64 {
         let origin: (i32, i32) = (i32::from(bounds.0 / 2), i32::from(bounds.1 / 2));
         let offset: (i32, i32) = (i32::from(pos.0) - origin.0, i32::from(pos.1) - origin.1);
 
@@ -56,7 +59,7 @@ impl Viewport {
     /// Given a current bounds and a new bounds, create a scaled viewport.
     ///
     /// This acts to downscale/upscale a viewport.
-    pub fn scale(&self, old: (u16, u16), new: (u16, u16)) -> Self {
+    pub fn scale(&self, old: Bounds, new: Bounds) -> Self {
         let re_scalar = f64::from(new.0) / f64::from(old.0);
         let im_scalar = f64::from(new.1) / f64::from(old.1);
         let avg = (re_scalar + im_scalar) / 2.;
@@ -102,7 +105,7 @@ impl AppContext {
     ///
     /// This fn is the most expensive operation in the application.
     ///
-    fn to_ematrix(&self, bounds: (u16, u16)) -> EMatrix {
+    fn to_ematrix(&self, bounds: Bounds) -> EMatrix {
         let y_iter = 0..bounds.0;
         let x_iter = 0..bounds.1;
 
@@ -137,7 +140,7 @@ fn cell_ansi(pos: (u16, u16), escape: Escape) -> String {
     )
 }
 
-fn ematrix_to_frame(mat: &EMatrix, bounds: (u16, u16)) -> String {
+fn ematrix_to_frame(mat: &EMatrix, bounds: Bounds) -> String {
     let y_iter = 0..bounds.0;
     let x_iter = 0..bounds.1;
 
@@ -148,7 +151,7 @@ fn ematrix_to_frame(mat: &EMatrix, bounds: (u16, u16)) -> String {
         .collect()
 }
 
-fn draw_frame<W: Write>(screen: &mut W, app: &AppContext, bounds: (u16, u16)) -> Result<(), crate::Error> {
+fn draw_frame<W: Write>(screen: &mut W, app: &AppContext, bounds: Bounds) -> Result<(), crate::Error> {
     let render_start: Instant = Instant::now();
     let mat = app.to_ematrix(bounds);
     let buffer = ematrix_to_frame(&mat, bounds);
@@ -163,7 +166,7 @@ fn draw_frame<W: Write>(screen: &mut W, app: &AppContext, bounds: (u16, u16)) ->
     let draw_delta = draw_stop - draw_start;
 
     let labels = vec![
-        format!("viewport = {:?}", &app.viewport),
+        format!("holo   = {:?}", &app.holomorphic),
         format!("re     = {:.4e}", app.viewport.re0),
         format!("im     = {:.4e}", app.viewport.im0),
         format!("iter   = {}", app.viewport.max_iter),
@@ -185,6 +188,23 @@ fn draw_frame<W: Write>(screen: &mut W, app: &AppContext, bounds: (u16, u16)) ->
 
     screen.flush()?;
     Ok(())
+}
+
+fn screenshot(app: &AppContext, bounds: Bounds) -> ! {
+    // TODO: handle write errors without panicking.
+    let imgen_bounds = (4000, 4000);
+
+    let mut imgen_viewport = app.viewport.scale(bounds, imgen_bounds);
+    imgen_viewport.comp.1 = 1.;
+
+    let imgen_app = AppContext { viewport: imgen_viewport, holomorphic: app.holomorphic.clone() };
+    let mat = imgen_app.to_ematrix(imgen_bounds);
+
+    let _v = write_viewport(&imgen_app);
+    eprintln!("viewport: {:?}", &_v);
+    let _e = write_ematrix(&mat);
+    eprintln!("ematrix: {:?}", &_e);
+    unimplemented!()
 }
 
 fn write_ematrix(ematrix: &EMatrix) -> io::Result<()> {
@@ -250,19 +270,7 @@ fn main() -> std::result::Result<(), crate::Error> {
 
             // Write the viewport state to a JSON file.
             Some(Ok(Key::Char('p'))) => {
-                // TODO: handle write errors without panicking.
-                let mut imgen_app = app.clone();
-
-                let imgen_bounds = (4000, 4000);
-                let imgen_viewport = app.viewport.scale(bounds, imgen_bounds);
-                imgen_app.viewport = imgen_viewport;
-                imgen_app.viewport.comp.1 = 1.;
-
-                let mat = imgen_app.to_ematrix(imgen_bounds);
-                let _v = write_viewport(&imgen_app);
-                eprintln!("viewport: {:?}", &_v);
-                let _e = write_ematrix(&mat);
-                eprintln!("ematrix: {:?}", &_e);
+                screenshot(&app, bounds);
             }
 
             // Toggle between the Julia sets and the Mandelbrot sets.
