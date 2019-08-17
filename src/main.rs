@@ -23,13 +23,13 @@ use mandelbrot::*;
 /// The bounds for a given image, in column major order.
 type Bounds = (u16, u16);
 
-/// The rendering context or view for a given position.
+/// A location, scalar, and rendering context for a position in the complex plane.
 #[derive(Clone, Debug, Serialize)]
-struct Viewport {
-    /// The x axis origin.
+struct Loc {
+    /// The imaginary/Y axis origin.
     pub im0: f64,
 
-    /// The y axis origin.
+    /// The real/X axis origin.
     pub re0: f64,
 
     /// Dimensional scaling factors in case the canvas is not square.
@@ -44,8 +44,9 @@ struct Viewport {
     pub max_iter: u32,
 }
 
-impl Viewport {
-    /// Compute the complex number for a given terminal position, viewport, and bounds.
+impl Loc {
+    /// Determine the complex value at a given offset of the origin with respect to the provided
+    /// bounds.
     fn complex_at(&self, bounds: Bounds, pos: (u16, u16)) -> Complex64 {
         let origin: (i32, i32) = (i32::from(bounds.0 / 2), i32::from(bounds.1 / 2));
         let offset: (i32, i32) = (i32::from(pos.0) - origin.0, i32::from(pos.1) - origin.1);
@@ -56,9 +57,10 @@ impl Viewport {
         }
     }
 
-    /// Given a current bounds and a new bounds, create a scaled viewport.
+    /// Given a current bounds and a new bounds, a location that's scaled such that the original
+    /// location and new location describe equivalent spaces with different resolutions.
     ///
-    /// This acts to downscale/upscale a viewport.
+    /// This acts to downscale/upscale a loc.
     pub fn scale(&self, old: Bounds, new: Bounds) -> Self {
         let re_scalar = f64::from(new.0) / f64::from(old.0);
         let im_scalar = f64::from(new.1) / f64::from(old.1);
@@ -69,7 +71,7 @@ impl Viewport {
     }
 }
 
-impl Default for Viewport {
+impl Default for Loc {
     fn default() -> Self {
         Self {
             im0: 0.0,
@@ -83,8 +85,8 @@ impl Default for Viewport {
 
 #[derive(Clone, Debug)]
 struct AppContext {
-    /// The current viewport.
-    pub viewport: Viewport,
+    /// The current loc.
+    pub loc: Loc,
     /// The active holomorphic function.
     pub holomorphic: Holomorphic,
 }
@@ -92,7 +94,7 @@ struct AppContext {
 impl Default for AppContext {
     fn default() -> Self {
         Self {
-            viewport: Viewport::default(),
+            loc: Loc::default(),
             holomorphic: Holomorphic::default()
         }
     }
@@ -113,8 +115,8 @@ impl AppContext {
             .cartesian_product(x_iter)
             .collect::<Vec<(u16, u16)>>()
             .par_iter()
-            .map(|pos| self.viewport.complex_at(bounds, pos.clone()))
-            .map(|c| self.holomorphic.render(c, self.viewport.max_iter))
+            .map(|pos| self.loc.complex_at(bounds, pos.clone()))
+            .map(|c| self.holomorphic.render(c, self.loc.max_iter))
             .collect();
 
         EMatrix::from_vec(usize::from(bounds.0), usize::from(bounds.1), escapes)
@@ -167,10 +169,10 @@ fn draw_frame<W: Write>(screen: &mut W, app: &AppContext, bounds: Bounds) -> Res
 
     let labels = vec![
         format!("holo   = {:?}", &app.holomorphic),
-        format!("re     = {:.4e}", app.viewport.re0),
-        format!("im     = {:.4e}", app.viewport.im0),
-        format!("iter   = {}", app.viewport.max_iter),
-        format!("scalar = {:.4e}", app.viewport.scalar),
+        format!("re     = {:.4e}", app.loc.re0),
+        format!("im     = {:.4e}", app.loc.im0),
+        format!("iter   = {}", app.loc.max_iter),
+        format!("scalar = {:.4e}", app.loc.scalar),
         format!("render = {}ms", render_delta.as_millis()),
         format!("draw   = {}ms", draw_delta.as_millis()),
     ];
@@ -194,14 +196,14 @@ fn screenshot(app: &AppContext, bounds: Bounds) -> ! {
     // TODO: handle write errors without panicking.
     let imgen_bounds = (4000, 4000);
 
-    let mut imgen_viewport = app.viewport.scale(bounds, imgen_bounds);
-    imgen_viewport.comp.1 = 1.;
+    let mut imgen_loc = app.loc.scale(bounds, imgen_bounds);
+    imgen_loc.comp.1 = 1.;
 
-    let imgen_app = AppContext { viewport: imgen_viewport, holomorphic: app.holomorphic.clone() };
+    let imgen_app = AppContext { loc: imgen_loc, holomorphic: app.holomorphic.clone() };
     let mat = imgen_app.to_ematrix(imgen_bounds);
 
-    let _v = write_viewport(&imgen_app);
-    eprintln!("viewport: {:?}", &_v);
+    let _v = write_loc(&imgen_app);
+    eprintln!("loc: {:?}", &_v);
     let _e = write_ematrix(&mat);
     eprintln!("ematrix: {:?}", &_e);
     unimplemented!()
@@ -216,14 +218,14 @@ fn write_ematrix(ematrix: &EMatrix) -> io::Result<()> {
     img.save(path)
 }
 
-fn write_viewport(app: &AppContext) -> std::io::Result<()> {
+fn write_loc(app: &AppContext) -> std::io::Result<()> {
     let unix_secs = SystemTime::now()
         .duration_since(SystemTime::UNIX_EPOCH)
         .unwrap();
     let path = format!("mb-{}.json", unix_secs.as_secs() as u64);
 
     let mut f = File::create(path)?;
-    let buf = serde_json::to_string(&app.viewport).unwrap();
+    let buf = serde_json::to_string(&app.loc).unwrap();
     f.write_all(&buf.as_bytes())
 }
 
@@ -244,31 +246,31 @@ fn main() -> std::result::Result<(), crate::Error> {
             Some(Ok(Key::Char('q'))) => break,
 
             // Zoom in keys - shift key is optional.
-            Some(Ok(Key::Char('+'))) => app.viewport.scalar /= 2.0,
-            Some(Ok(Key::Char('='))) => app.viewport.scalar /= 2.0,
+            Some(Ok(Key::Char('+'))) => app.loc.scalar /= 2.0,
+            Some(Ok(Key::Char('='))) => app.loc.scalar /= 2.0,
 
             // Zoom out keys - shift key is optional.
-            Some(Ok(Key::Char('-'))) => app.viewport.scalar *= 2.0,
-            Some(Ok(Key::Char('_'))) => app.viewport.scalar *= 2.0,
+            Some(Ok(Key::Char('-'))) => app.loc.scalar *= 2.0,
+            Some(Ok(Key::Char('_'))) => app.loc.scalar *= 2.0,
 
             // Move left/right along the real axis.
-            Some(Ok(Key::Char('a'))) => app.viewport.re0 -= app.viewport.scalar * 10.0,
-            Some(Ok(Key::Char('d'))) => app.viewport.re0 += app.viewport.scalar * 10.0,
+            Some(Ok(Key::Char('a'))) => app.loc.re0 -= app.loc.scalar * 10.0,
+            Some(Ok(Key::Char('d'))) => app.loc.re0 += app.loc.scalar * 10.0,
 
             // Move up and down on the imaginary axis.
-            Some(Ok(Key::Char('w'))) => app.viewport.im0 -= app.viewport.scalar * 10.0,
-            Some(Ok(Key::Char('s'))) => app.viewport.im0 += app.viewport.scalar * 10.0,
+            Some(Ok(Key::Char('w'))) => app.loc.im0 -= app.loc.scalar * 10.0,
+            Some(Ok(Key::Char('s'))) => app.loc.im0 += app.loc.scalar * 10.0,
 
             // Increase the limit on iterations to escape.
-            Some(Ok(Key::Char('t'))) => app.viewport.max_iter += 25,
-            Some(Ok(Key::Char('g'))) => app.viewport.max_iter -= 25,
+            Some(Ok(Key::Char('t'))) => app.loc.max_iter += 25,
+            Some(Ok(Key::Char('g'))) => app.loc.max_iter -= 25,
 
             // Reset to default.
             Some(Ok(Key::Char('m'))) => {
-                std::mem::replace(&mut app.viewport, Viewport::default());
+                std::mem::replace(&mut app.loc, Loc::default());
             }
 
-            // Write the viewport state to a JSON file.
+            // Write the loc state to a JSON file.
             Some(Ok(Key::Char('p'))) => {
                 screenshot(&app, bounds);
             }
@@ -282,8 +284,8 @@ fn main() -> std::result::Result<(), crate::Error> {
                     }
                     Holomorphic::Mandelbrot(ref m) => {
                         let c = Complex64 {
-                            re: app.viewport.re0,
-                            im: app.viewport.im0,
+                            re: app.loc.re0,
+                            im: app.loc.im0,
                         };
                         new_holo = Holomorphic::Julia(Julia::from_c(m, c))
                     }
