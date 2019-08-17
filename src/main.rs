@@ -121,6 +121,11 @@ impl AppContext {
 
         EMatrix::from_vec(usize::from(bounds.0), usize::from(bounds.1), escapes)
     }
+
+    /// Create a new application context with a pre-defined location.
+    fn with_loc(loc: Loc) -> Self {
+        Self { loc, holomorphic: Holomorphic::default() }
+    }
 }
 
 /// Given XY coordinates and computed mandelbrot iteration,
