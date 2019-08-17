@@ -42,7 +42,7 @@ impl AppContext {
     ///
     /// This fn is the most expensive operation in the application.
     ///
-    fn to_ematrix(&self, bounds: Bounds) -> EMatrix {
+    fn render(&self, bounds: Bounds) -> EMatrix {
         let y_iter = 0..bounds.0;
         let x_iter = 0..bounds.1;
 
@@ -95,7 +95,7 @@ fn ematrix_to_frame(mat: &EMatrix, bounds: Bounds) -> String {
 
 fn draw_frame<W: Write>(screen: &mut W, app: &AppContext, bounds: Bounds) -> Result<(), crate::Error> {
     let render_start: Instant = Instant::now();
-    let mat = app.to_ematrix(bounds);
+    let mat = app.render(bounds);
     let buffer = ematrix_to_frame(&mat, bounds);
     let render_stop: Instant = Instant::now();
 
@@ -132,7 +132,7 @@ fn draw_frame<W: Write>(screen: &mut W, app: &AppContext, bounds: Bounds) -> Res
     Ok(())
 }
 
-fn screenshot(app: &AppContext, bounds: Bounds) -> ! {
+fn screenshot(app: &AppContext, bounds: Bounds) -> Result<(), crate::Error> {
     // TODO: handle write errors without panicking.
     let imgen_bounds = (4000, 4000);
 
@@ -140,13 +140,11 @@ fn screenshot(app: &AppContext, bounds: Bounds) -> ! {
     imgen_loc.comp.1 = 1.;
 
     let imgen_app = AppContext { loc: imgen_loc, holomorphic: app.holomorphic.clone() };
-    let mat = imgen_app.to_ematrix(imgen_bounds);
+    let mat = imgen_app.render(imgen_bounds);
 
-    let _v = write_loc(&imgen_app);
-    eprintln!("loc: {:?}", &_v);
-    let _e = write_ematrix(&mat);
-    eprintln!("ematrix: {:?}", &_e);
-    unimplemented!()
+    write_loc(&imgen_app)?;
+    write_ematrix(&mat)?;
+    Ok(())
 }
 
 fn write_ematrix(ematrix: &EMatrix) -> io::Result<()> {
