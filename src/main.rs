@@ -272,53 +272,15 @@ fn main() -> std::result::Result<(), crate::Error> {
         let bounds = termion::terminal_size()?;
         draw_frame(&mut screen, &rctx, bounds)?;
         match (&mut stdin).keys().next() {
-            Some(Ok(Key::Char('q'))) => break,
-
-            // Zoom in keys - shift key is optional.
-            Some(Ok(Key::Char('+'))) => rctx.loc.scalar /= 2.0,
-            Some(Ok(Key::Char('='))) => rctx.loc.scalar /= 2.0,
-
-            // Zoom out keys - shift key is optional.
-            Some(Ok(Key::Char('-'))) => rctx.loc.scalar *= 2.0,
-            Some(Ok(Key::Char('_'))) => rctx.loc.scalar *= 2.0,
-
-            // Move left/right along the real axis.
-            Some(Ok(Key::Char('a'))) => rctx.loc.re0 -= rctx.loc.scalar * 10.0,
-            Some(Ok(Key::Char('d'))) => rctx.loc.re0 += rctx.loc.scalar * 10.0,
-
-            // Move up and down on the imaginary axis.
-            Some(Ok(Key::Char('w'))) => rctx.loc.im0 -= rctx.loc.scalar * 10.0,
-            Some(Ok(Key::Char('s'))) => rctx.loc.im0 += rctx.loc.scalar * 10.0,
-
-            // Increase the limit on iterations to escape.
-            Some(Ok(Key::Char('t'))) => rctx.loc.max_iter += 25,
-            Some(Ok(Key::Char('g'))) => rctx.loc.max_iter -= 25,
-
-            // Reset to default.
-            Some(Ok(Key::Char('m'))) => {
-                std::mem::replace(&mut rctx.loc, Loc::default());
-            }
-
-            // Write the loc state to a JSON file.
-            Some(Ok(Key::Char('p'))) => {
-                screenshot(&rctx, bounds);
-            }
-
-            // Toggle between the Julia sets and the Mandelbrot sets.
-            Some(Ok(Key::Char('x'))) => {
-                let new_holo: Holomorphic;
-                match rctx.holomorphic {
-                    Holomorphic::Julia(ref j) => {
-                        new_holo = Holomorphic::Mandelbrot(Mandelbrot::from(j));
-                    }
-                    Holomorphic::Mandelbrot(ref m) => {
-                        new_holo = Holomorphic::Julia(Julia::from_c(m, rctx.loc.origin()))
-                    }
+            None | Some(Err(_)) => break, // Stdin was closed or could not be read, shut down.
+            Some(Ok(key)) => {
+                match AppCmd::from(key) {
+                    AppCmd::Transform(t) => { rctx.transform(&t); }
+                    AppCmd::Save => { screenshot(&rctx, bounds); }
+                    AppCmd::Quit => break,
+                    AppCmd::Unhandled(_) => {}
                 }
-                rctx.holomorphic = new_holo;
             }
-
-            _ => {}
         }
     }
 
