@@ -1,5 +1,7 @@
 //! Mandelbrot
 
+extern crate itertools;
+extern crate rayon;
 extern crate num;
 extern crate serde;
 
@@ -11,6 +13,8 @@ pub mod ematrix;
 pub use ematrix::*;
 pub mod loc;
 pub use loc::*;
+pub mod render_context;
+pub use render_context::*;
 
 #[derive(Debug)]
 pub struct Error {

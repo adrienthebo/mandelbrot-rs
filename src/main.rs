@@ -2,13 +2,11 @@ extern crate image;
 extern crate itertools;
 extern crate nalgebra;
 extern crate num;
-extern crate rayon;
 extern crate serde;
 extern crate termion;
 extern crate mandelbrot;
 
 use itertools::Itertools;
-use rayon::prelude::*;
 use std::fs::File;
 use std::io::{self, Write};
 use std::time::{Instant, SystemTime};
@@ -18,98 +16,6 @@ use termion::raw::IntoRawMode;
 use termion::screen::*;
 use mandelbrot::*;
 
-#[derive(Clone, Debug)]
-struct RenderContext {
-    /// The current loc.
-    pub loc: Loc,
-    /// The active holomorphic function.
-    pub holomorphic: Holomorphic,
-}
-
-impl Default for RenderContext {
-    fn default() -> Self {
-        Self {
-            loc: Loc::default(),
-            holomorphic: Holomorphic::default()
-        }
-    }
-}
-
-impl RenderContext {
-    /// Generate an escape matrix from the current application context.
-    ///
-    /// # Performance
-    ///
-    /// This fn is the most expensive operation in the application.
-    ///
-    fn render(&self, bounds: Bounds) -> EMatrix {
-        let y_iter = 0..bounds.0;
-        let x_iter = 0..bounds.1;
-
-        let escapes: Vec<Escape> = y_iter
-            .cartesian_product(x_iter)
-            .collect::<Vec<(u16, u16)>>()
-            .par_iter()
-            .map(|pos| self.loc.complex_at(bounds, pos.clone()))
-            .map(|c| self.holomorphic.render(c, self.loc.max_iter))
-            .collect();
-
-        EMatrix::from_vec(usize::from(bounds.0), usize::from(bounds.1), escapes)
-    }
-
-    /// Create a new application context with a pre-defined location.
-    fn with_loc(loc: Loc) -> Self {
-        Self { loc, holomorphic: Holomorphic::default() }
-    }
-
-    pub fn transform(&mut self, transform: &RctxTransform) {
-        match *transform {
-            RctxTransform::TranslateUp => self.loc.im0 -= self.loc.scalar * 10.0,
-            RctxTransform::TranslateDown => self.loc.im0 += self.loc.scalar * 10.0,
-
-            RctxTransform::TranslateLeft => self.loc.re0 -= self.loc.scalar * 10.0,
-            RctxTransform::TranslateRight => self.loc.re0 += self.loc.scalar * 10.0,
-
-            RctxTransform::IncIterations => self.loc.max_iter += 25,
-            RctxTransform::DecIterations => self.loc.max_iter -= 25,
-
-            RctxTransform::ScaleIn => self.loc.scalar /= 2.0,
-            RctxTransform::ScaleOut => self.loc.scalar *= 2.0,
-
-            RctxTransform::Reset => {
-                // TODO: use `Loc::for_bounds()` for appropriate zoom selection
-                std::mem::replace(&mut self.loc, Loc::default());
-            }
-
-            RctxTransform::ToggleHolo => {
-                let new_holo: Holomorphic;
-                match self.holomorphic {
-                    Holomorphic::Julia(ref j) => {
-                        new_holo = Holomorphic::Mandelbrot(Mandelbrot::from(j));
-                    }
-                    Holomorphic::Mandelbrot(ref m) => {
-                        new_holo = Holomorphic::Julia(Julia::from_c(m, self.loc.origin()))
-                    }
-                }
-                self.holomorphic = new_holo;
-            }
-        }
-    }
-}
-
-#[derive(Debug,Clone,Copy)]
-enum RctxTransform {
-    TranslateUp,
-    TranslateDown,
-    TranslateLeft,
-    TranslateRight,
-    ScaleIn,
-    ScaleOut,
-    IncIterations,
-    DecIterations,
-    ToggleHolo,
-    Reset,
-}
 
 #[derive(Debug,Clone,Copy)]
 enum AppCmd {
@@ -276,7 +182,10 @@ fn main() -> std::result::Result<(), crate::Error> {
             Some(Ok(key)) => {
                 match AppCmd::from(key) {
                     AppCmd::Transform(t) => { rctx.transform(&t); }
-                    AppCmd::Save => { screenshot(&rctx, bounds); }
+                    AppCmd::Save => {
+                        // TODO: handle errors when generating screenshots.
+                        let _ = screenshot(&rctx, bounds);
+                    }
                     AppCmd::Quit => break,
                     AppCmd::Unhandled(_) => {}
                 }
