@@ -34,7 +34,7 @@ impl EMatrix {
     pub fn into_iter(self) -> EMatrixIterator {
         EMatrixIterator {
             mat: self,
-            index: 0
+            index: 0,
         }
     }
 

@@ -7,15 +7,15 @@
 //! - Add coloring logic
 //! - Add a related type that binds a rendering context with a specific bounds.
 
-use crate::Holomorphic;
-use crate::Loc;
-use crate::Escape;
-use crate::EMatrix;
-use crate::Mandelbrot;
-use crate::Julia;
 use crate::Bounds;
-use rayon::prelude::*;
+use crate::EMatrix;
+use crate::Escape;
+use crate::Holomorphic;
+use crate::Julia;
+use crate::Loc;
+use crate::Mandelbrot;
 use itertools::Itertools;
+use rayon::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct RenderContext {
@@ -29,7 +29,7 @@ impl Default for RenderContext {
     fn default() -> Self {
         Self {
             loc: Loc::default(),
-            holomorphic: Holomorphic::default()
+            holomorphic: Holomorphic::default(),
         }
     }
 }
@@ -62,16 +62,25 @@ impl RenderContext {
 
     /// Create a new application context with a pre-defined location.
     pub fn with_loc(loc: Loc) -> Self {
-        Self { loc, holomorphic: Holomorphic::default() }
+        Self {
+            loc,
+            holomorphic: Holomorphic::default(),
+        }
     }
 
     pub fn transform(&mut self, transform: &RctxTransform) {
         match *transform {
             RctxTransform::TranslateUp => self.loc.im0 -= self.loc.scalar * Self::TRANSLATE_SCALAR,
-            RctxTransform::TranslateDown => self.loc.im0 += self.loc.scalar * Self::TRANSLATE_SCALAR,
+            RctxTransform::TranslateDown => {
+                self.loc.im0 += self.loc.scalar * Self::TRANSLATE_SCALAR
+            }
 
-            RctxTransform::TranslateLeft => self.loc.re0 -= self.loc.scalar * Self::TRANSLATE_SCALAR,
-            RctxTransform::TranslateRight => self.loc.re0 += self.loc.scalar * Self::TRANSLATE_SCALAR,
+            RctxTransform::TranslateLeft => {
+                self.loc.re0 -= self.loc.scalar * Self::TRANSLATE_SCALAR
+            }
+            RctxTransform::TranslateRight => {
+                self.loc.re0 += self.loc.scalar * Self::TRANSLATE_SCALAR
+            }
 
             RctxTransform::IncIterations => self.loc.max_iter += Self::ITERATIONS_SCALAR,
             RctxTransform::DecIterations => self.loc.max_iter -= Self::ITERATIONS_SCALAR,
@@ -100,7 +109,7 @@ impl RenderContext {
     }
 }
 
-#[derive(Debug,Clone,Copy)]
+#[derive(Debug, Clone, Copy)]
 pub enum RctxTransform {
     TranslateUp,
     TranslateDown,

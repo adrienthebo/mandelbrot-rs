@@ -1,8 +1,8 @@
 //! Mandelbrot
 
 extern crate itertools;
-extern crate rayon;
 extern crate num;
+extern crate rayon;
 extern crate serde;
 
 use num::complex::Complex64;
@@ -84,7 +84,7 @@ impl SineChannel {
                 freq: Self::FREQ,
                 phase: std::f64::consts::PI * 2. / 3.,
                 offset: Self::OFFSET,
-            }
+            },
         )
     }
 }
@@ -96,7 +96,9 @@ pub struct SineRGB {
 
 impl Default for SineRGB {
     fn default() -> Self {
-        Self { channels: SineChannel::sunset() }
+        Self {
+            channels: SineChannel::sunset(),
+        }
     }
 }
 
@@ -111,14 +113,12 @@ impl SineRGB {
     /// case form trumps function, so deal with it.
     pub fn rgb(&self, escape: Escape) -> (u8, u8, u8) {
         match escape.map(|iters| f64::from(iters)) {
-            None => (0,0,0),
-            Some(i) => {
-                (
-                    self.channels.0.compute(i),
-                    self.channels.1.compute(i),
-                    self.channels.2.compute(i),
-                )
-            }
+            None => (0, 0, 0),
+            Some(i) => (
+                self.channels.0.compute(i),
+                self.channels.1.compute(i),
+                self.channels.2.compute(i),
+            ),
         }
     }
 }

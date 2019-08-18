@@ -1,12 +1,13 @@
 extern crate image;
 extern crate itertools;
+extern crate mandelbrot;
 extern crate nalgebra;
 extern crate num;
 extern crate serde;
 extern crate termion;
-extern crate mandelbrot;
 
 use itertools::Itertools;
+use mandelbrot::*;
 use std::fs::File;
 use std::io::{self, Write};
 use std::time::{Instant, SystemTime};
@@ -14,10 +15,8 @@ use termion::event::Key;
 use termion::input::TermRead;
 use termion::raw::IntoRawMode;
 use termion::screen::*;
-use mandelbrot::*;
 
-
-#[derive(Debug,Clone,Copy)]
+#[derive(Debug, Clone, Copy)]
 enum AppCmd {
     Transform(RctxTransform),
     Save,
@@ -90,7 +89,11 @@ fn ematrix_to_frame(mat: &EMatrix, bounds: Bounds) -> String {
         .collect()
 }
 
-fn draw_frame<W: Write>(screen: &mut W, rctx: &RenderContext, bounds: Bounds) -> Result<(), crate::Error> {
+fn draw_frame<W: Write>(
+    screen: &mut W,
+    rctx: &RenderContext,
+    bounds: Bounds,
+) -> Result<(), crate::Error> {
     let render_start: Instant = Instant::now();
     let mat = rctx.render(bounds);
     let buffer = ematrix_to_frame(&mat, bounds);
@@ -136,7 +139,10 @@ fn screenshot(rctx: &RenderContext, bounds: Bounds) -> Result<(), crate::Error> 
     let mut imgen_loc = rctx.loc.scale(bounds, imgen_bounds);
     imgen_loc.comp.1 = 1.;
 
-    let imgen_app = RenderContext { loc: imgen_loc, holomorphic: rctx.holomorphic.clone() };
+    let imgen_app = RenderContext {
+        loc: imgen_loc,
+        holomorphic: rctx.holomorphic.clone(),
+    };
     let mat = imgen_app.render(imgen_bounds);
 
     write_loc(&imgen_app)?;
@@ -181,7 +187,9 @@ fn main() -> std::result::Result<(), crate::Error> {
             None | Some(Err(_)) => break, // Stdin was closed or could not be read, shut down.
             Some(Ok(key)) => {
                 match AppCmd::from(key) {
-                    AppCmd::Transform(t) => { rctx.transform(&t); }
+                    AppCmd::Transform(t) => {
+                        rctx.transform(&t);
+                    }
                     AppCmd::Save => {
                         // TODO: handle errors when generating screenshots.
                         let _ = screenshot(&rctx, bounds);

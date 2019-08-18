@@ -1,8 +1,8 @@
 //! A location and magnification within the complex plane.
 
+use crate::Bounds;
 use num::complex::Complex64;
 use serde::Serialize;
-use crate::Bounds;
 
 /// A location, scalar, and rendering context for a position in the complex plane.
 #[derive(Clone, Debug, Serialize)]
@@ -31,17 +31,20 @@ impl Loc {
         let re_steps: f64 = 1.5 / f64::from(bounds.0);
         let im_steps: f64 = 1.5 / f64::from(bounds.1);
 
-        let scalar = if re_steps > im_steps { re_steps } else { im_steps };
+        let scalar = if re_steps > im_steps {
+            re_steps
+        } else {
+            im_steps
+        };
 
         Self {
             im0: 0.,
             re0: -0.5,
             comp: (1., 2.),
             scalar: scalar,
-            max_iter: 100
+            max_iter: 100,
         }
     }
-
 
     /// Determine the complex value at a given offset of the origin with respect to the provided
     /// bounds.
@@ -62,10 +65,14 @@ impl Loc {
     pub fn scale(&self, old: Bounds, new: Bounds) -> Self {
         let re_scalar = f64::from(new.0) / f64::from(old.0);
         let im_scalar = f64::from(new.1) / f64::from(old.1);
-        let min = if re_scalar < im_scalar { re_scalar } else { im_scalar };
+        let min = if re_scalar < im_scalar {
+            re_scalar
+        } else {
+            im_scalar
+        };
         let scalar = self.scalar / min;
 
-        Self { scalar, .. *self }
+        Self { scalar, ..*self }
     }
 
     pub fn origin(&self) -> Complex64 {
@@ -87,5 +94,3 @@ impl Default for Loc {
         }
     }
 }
-
-
