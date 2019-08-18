@@ -61,10 +61,44 @@ impl RenderContext {
     fn with_loc(loc: Loc) -> Self {
         Self { loc, holomorphic: Holomorphic::default() }
     }
+
+    pub fn transform(&mut self, transform: &RctxTransform) {
+        match *transform {
+            RctxTransform::TranslateUp => self.loc.im0 -= self.loc.scalar * 10.0,
+            RctxTransform::TranslateDown => self.loc.im0 += self.loc.scalar * 10.0,
+
+            RctxTransform::TranslateLeft => self.loc.re0 -= self.loc.scalar * 10.0,
+            RctxTransform::TranslateRight => self.loc.re0 += self.loc.scalar * 10.0,
+
+            RctxTransform::IncIterations => self.loc.max_iter += 25,
+            RctxTransform::DecIterations => self.loc.max_iter -= 25,
+
+            RctxTransform::ScaleIn => self.loc.scalar /= 2.0,
+            RctxTransform::ScaleOut => self.loc.scalar *= 2.0,
+
+            RctxTransform::Reset => {
+                // TODO: use `Loc::for_bounds()` for appropriate zoom selection
+                std::mem::replace(&mut self.loc, Loc::default());
+            }
+
+            RctxTransform::ToggleHolo => {
+                let new_holo: Holomorphic;
+                match self.holomorphic {
+                    Holomorphic::Julia(ref j) => {
+                        new_holo = Holomorphic::Mandelbrot(Mandelbrot::from(j));
+                    }
+                    Holomorphic::Mandelbrot(ref m) => {
+                        new_holo = Holomorphic::Julia(Julia::from_c(m, self.loc.origin()))
+                    }
+                }
+                self.holomorphic = new_holo;
+            }
+        }
+    }
 }
 
 #[derive(Debug,Clone,Copy)]
-enum AppCmd {
+enum RctxTransform {
     TranslateUp,
     TranslateDown,
     TranslateLeft,
@@ -73,9 +107,14 @@ enum AppCmd {
     ScaleOut,
     IncIterations,
     DecIterations,
-    Save,
     ToggleHolo,
     Reset,
+}
+
+#[derive(Debug,Clone,Copy)]
+enum AppCmd {
+    Transform(RctxTransform),
+    Save,
     Quit,
     Unhandled(Key),
 }
@@ -86,29 +125,29 @@ impl From<Key> for AppCmd {
             Key::Char('q') => AppCmd::Quit,
 
             // Zoom in/out - shift key is optional.
-            Key::Char('+') | Key::Char('=') => AppCmd::ScaleIn,
-            Key::Char('-') | Key::Char('_') => AppCmd::ScaleOut,
+            Key::Char('+') | Key::Char('=') => AppCmd::Transform(RctxTransform::ScaleIn),
+            Key::Char('-') | Key::Char('_') => AppCmd::Transform(RctxTransform::ScaleOut),
 
             // Move left/right along the real axis.
-            Key::Char('a') => AppCmd::TranslateLeft,
-            Key::Char('d') => AppCmd::TranslateRight,
+            Key::Char('a') => AppCmd::Transform(RctxTransform::TranslateLeft),
+            Key::Char('d') => AppCmd::Transform(RctxTransform::TranslateRight),
 
             // Move up and down on the imaginary axis.
-            Key::Char('w') => AppCmd::TranslateUp,
-            Key::Char('s') => AppCmd::TranslateDown,
+            Key::Char('w') => AppCmd::Transform(RctxTransform::TranslateUp),
+            Key::Char('s') => AppCmd::Transform(RctxTransform::TranslateDown),
 
             // Increase the limit on iterations to escape.
-            Key::Char('t') => AppCmd::IncIterations,
-            Key::Char('g') => AppCmd::DecIterations,
+            Key::Char('t') => AppCmd::Transform(RctxTransform::IncIterations),
+            Key::Char('g') => AppCmd::Transform(RctxTransform::DecIterations),
+
+            // Toggle between the Julia sets and the Mandelbrot sets.
+            Key::Char('x') => AppCmd::Transform(RctxTransform::ToggleHolo),
 
             // Reset the zoom level to default.
-            Key::Char('m') => AppCmd::Reset,
+            Key::Char('m') => AppCmd::Transform(RctxTransform::Reset),
 
             // Generate a state file and image for the current location.
             Key::Char('p') => AppCmd::Save,
-
-            // Toggle between the Julia sets and the Mandelbrot sets.
-            Key::Char('x') => AppCmd::ToggleHolo,
 
             u => AppCmd::Unhandled(u),
         }
