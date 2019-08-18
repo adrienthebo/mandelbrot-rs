@@ -35,6 +35,10 @@ impl Default for RenderContext {
 }
 
 impl RenderContext {
+    const TRANSLATE_SCALAR: f64 = 10.;
+    const SCALE_SCALAR: f64 = 2.;
+    const ITERATIONS_SCALAR: u32 = 25;
+
     /// Generate an escape matrix from the current application context.
     ///
     /// # Performance
@@ -63,17 +67,17 @@ impl RenderContext {
 
     pub fn transform(&mut self, transform: &RctxTransform) {
         match *transform {
-            RctxTransform::TranslateUp => self.loc.im0 -= self.loc.scalar * 10.0,
-            RctxTransform::TranslateDown => self.loc.im0 += self.loc.scalar * 10.0,
+            RctxTransform::TranslateUp => self.loc.im0 -= self.loc.scalar * Self::TRANSLATE_SCALAR,
+            RctxTransform::TranslateDown => self.loc.im0 += self.loc.scalar * Self::TRANSLATE_SCALAR,
 
-            RctxTransform::TranslateLeft => self.loc.re0 -= self.loc.scalar * 10.0,
-            RctxTransform::TranslateRight => self.loc.re0 += self.loc.scalar * 10.0,
+            RctxTransform::TranslateLeft => self.loc.re0 -= self.loc.scalar * Self::TRANSLATE_SCALAR,
+            RctxTransform::TranslateRight => self.loc.re0 += self.loc.scalar * Self::TRANSLATE_SCALAR,
 
-            RctxTransform::IncIterations => self.loc.max_iter += 25,
-            RctxTransform::DecIterations => self.loc.max_iter -= 25,
+            RctxTransform::IncIterations => self.loc.max_iter += Self::ITERATIONS_SCALAR,
+            RctxTransform::DecIterations => self.loc.max_iter -= Self::ITERATIONS_SCALAR,
 
-            RctxTransform::ScaleIn => self.loc.scalar /= 2.0,
-            RctxTransform::ScaleOut => self.loc.scalar *= 2.0,
+            RctxTransform::ScaleIn => self.loc.scalar /= Self::SCALE_SCALAR,
+            RctxTransform::ScaleOut => self.loc.scalar *= Self::SCALE_SCALAR,
 
             RctxTransform::Reset => {
                 // TODO: use `Loc::for_bounds()` for appropriate zoom selection
