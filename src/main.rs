@@ -6,17 +6,24 @@ extern crate num;
 extern crate serde;
 extern crate termion;
 extern crate structopt;
+extern crate tui;
 
 use itertools::Itertools;
 use mandelbrot::*;
 use std::fs::File;
 use std::io::{self, Write};
-use std::time::{Instant, SystemTime};
+use std::time::{Instant, SystemTime, Duration};
+use std::thread;
 use termion::event::Key;
-use termion::input::TermRead;
+use termion::input::{TermRead, MouseTerminal};
 use termion::raw::IntoRawMode;
 use termion::screen::*;
 use structopt::StructOpt;
+
+use tui::backend::TermionBackend;
+use tui::layout::{Constraint, Direction, Layout};
+use tui::widgets::{Block, Borders, Widget};
+use tui::Terminal;
 
 #[derive(Debug, Clone, Copy)]
 enum AppCmd {
@@ -210,6 +217,64 @@ fn run_termion() -> std::result::Result<(), crate::Error> {
     Ok(())
 }
 
+fn run_tui() -> std::result::Result<(), crate::Error> {
+    // Terminal initialization
+    let mut stdin = io::stdin();
+    let stdout = io::stdout().into_raw_mode()?;
+    let stdout = MouseTerminal::from(stdout);
+    let stdout = AlternateScreen::from(stdout);
+    let backend = TermionBackend::new(stdout);
+    let mut terminal = Terminal::new(backend)?;
+    terminal.hide_cursor()?;
+
+    let mut rctx = RenderContext::with_loc(Loc::for_bounds(termion::terminal_size()?));
+
+    loop {
+        let bounds = termion::terminal_size()?;
+        terminal.draw(|mut f| {
+            let chunks = Layout::default()
+                .direction(Direction::Horizontal)
+                .constraints(
+                    [
+                        Constraint::Percentage(20),
+                        Constraint::Percentage(80),
+                    ]
+                    .as_ref(),
+                )
+                .split(f.size());
+
+            Block::default()
+                .title("Sidebar")
+                .borders(Borders::ALL)
+                .render(&mut f, chunks[0]);
+            Block::default()
+                .borders(Borders::NONE)
+                .render(&mut f, chunks[1]);
+        })?;
+
+        match (&mut stdin).keys().next() {
+            None | Some(Err(_)) => {
+                thread::sleep(Duration::from_millis(100));
+            }
+            Some(Ok(key)) => {
+                match AppCmd::from(key) {
+                    AppCmd::Transform(t) => {
+                        rctx.transform(&t);
+                    }
+                    AppCmd::Save => {
+                        // TODO: handle errors when generating screenshots.
+                        let _ = screenshot(&rctx, bounds);
+                    }
+                    AppCmd::Quit => break,
+                    AppCmd::Unhandled(_) => {}
+                }
+            }
+        }
+    }
+
+    Ok(())
+}
+
 #[derive(Debug)]
 enum TuiType {
     Termion,
@@ -253,7 +318,7 @@ fn main() -> std::result::Result<(), crate::Error> {
             run_termion()
         }
         Some(TuiType::Tui) => {
-            unimplemented!()
+            run_tui()
         }
     }
 }
