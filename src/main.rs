@@ -5,6 +5,8 @@ extern crate nalgebra;
 extern crate num;
 extern crate serde;
 extern crate termion;
+#[macro_use]
+extern crate structopt;
 
 use itertools::Itertools;
 use mandelbrot::*;
@@ -170,7 +172,7 @@ fn write_loc(rctx: &RenderContext) -> std::io::Result<()> {
     f.write_all(&buf.as_bytes())
 }
 
-fn main() -> std::result::Result<(), crate::Error> {
+fn run_termion() -> std::result::Result<(), crate::Error> {
     // Terminal initialization
     let mut stdin = io::stdin();
     let stdout = io::stdout().into_raw_mode().unwrap();
@@ -206,4 +208,44 @@ fn main() -> std::result::Result<(), crate::Error> {
     screen.flush()?;
 
     Ok(())
+}
+
+#[derive(Debug)]
+enum TuiType {
+    Termion,
+    Tui
+}
+
+#[derive(Debug)]
+pub struct TuiTypeParseError(String);
+
+impl std::fmt::Display for TuiTypeParseError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "Cannot parse {} to tui type", self.0)
+    }
+}
+
+impl std::error::Error for TuiTypeParseError {}
+
+impl std::str::FromStr for TuiType {
+    type Err = TuiTypeParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "tui" => Ok(TuiType::Tui),
+            "termion" => Ok(TuiType::Termion),
+            _ => Err(TuiTypeParseError(s.to_string()))
+        }
+    }
+}
+
+#[derive(Debug, StructOpt)]
+#[structopt(name = "mandelbrot")]
+struct AppOptions {
+    #[structopt(short = "t", long = "tui")]
+    tui_type: Option<TuiType>
+}
+
+fn main() -> std::result::Result<(), crate::Error> {
+    run_termion()
 }
