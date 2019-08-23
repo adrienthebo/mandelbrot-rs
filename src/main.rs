@@ -5,7 +5,6 @@ extern crate nalgebra;
 extern crate num;
 extern crate serde;
 extern crate termion;
-#[macro_use]
 extern crate structopt;
 
 use itertools::Itertools;
@@ -17,6 +16,7 @@ use termion::event::Key;
 use termion::input::TermRead;
 use termion::raw::IntoRawMode;
 use termion::screen::*;
+use structopt::StructOpt;
 
 #[derive(Debug, Clone, Copy)]
 enum AppCmd {
@@ -247,5 +247,13 @@ struct AppOptions {
 }
 
 fn main() -> std::result::Result<(), crate::Error> {
-    run_termion()
+    let opts = AppOptions::from_args();
+    match opts.tui_type {
+        None | Some(TuiType::Termion) => {
+            run_termion()
+        }
+        Some(TuiType::Tui) => {
+            unimplemented!()
+        }
+    }
 }
