@@ -4,21 +4,21 @@ extern crate mandelbrot;
 extern crate nalgebra;
 extern crate num;
 extern crate serde;
-extern crate termion;
 extern crate structopt;
+extern crate termion;
 extern crate tui;
 
 use itertools::Itertools;
 use mandelbrot::*;
 use std::fs::File;
 use std::io::{self, Write};
-use std::time::{Instant, SystemTime, Duration};
 use std::thread;
+use std::time::{Duration, Instant, SystemTime};
+use structopt::StructOpt;
 use termion::event::Key;
-use termion::input::{TermRead, MouseTerminal};
+use termion::input::{MouseTerminal, TermRead};
 use termion::raw::IntoRawMode;
 use termion::screen::*;
-use structopt::StructOpt;
 
 use tui::backend::TermionBackend;
 use tui::layout::{Constraint, Direction, Layout};
@@ -234,13 +234,7 @@ fn run_tui() -> std::result::Result<(), crate::Error> {
         terminal.draw(|mut f| {
             let chunks = Layout::default()
                 .direction(Direction::Horizontal)
-                .constraints(
-                    [
-                        Constraint::Percentage(20),
-                        Constraint::Percentage(80),
-                    ]
-                    .as_ref(),
-                )
+                .constraints([Constraint::Percentage(20), Constraint::Percentage(80)].as_ref())
                 .split(f.size());
 
             Block::default()
@@ -278,7 +272,7 @@ fn run_tui() -> std::result::Result<(), crate::Error> {
 #[derive(Debug)]
 enum TuiType {
     Termion,
-    Tui
+    Tui,
 }
 
 #[derive(Debug)]
@@ -299,7 +293,7 @@ impl std::str::FromStr for TuiType {
         match s {
             "tui" => Ok(TuiType::Tui),
             "termion" => Ok(TuiType::Termion),
-            _ => Err(TuiTypeParseError(s.to_string()))
+            _ => Err(TuiTypeParseError(s.to_string())),
         }
     }
 }
@@ -308,17 +302,13 @@ impl std::str::FromStr for TuiType {
 #[structopt(name = "mandelbrot")]
 struct AppOptions {
     #[structopt(short = "t", long = "tui")]
-    tui_type: Option<TuiType>
+    tui_type: Option<TuiType>,
 }
 
 fn main() -> std::result::Result<(), crate::Error> {
     let opts = AppOptions::from_args();
     match opts.tui_type {
-        None | Some(TuiType::Termion) => {
-            run_termion()
-        }
-        Some(TuiType::Tui) => {
-            run_tui()
-        }
+        None | Some(TuiType::Termion) => run_termion(),
+        Some(TuiType::Tui) => run_tui(),
     }
 }
