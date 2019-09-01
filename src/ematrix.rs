@@ -25,6 +25,24 @@ impl EMatrix {
         self.0.len()
     }
 
+    pub fn nrows(&self) -> usize {
+        self.0.nrows()
+    }
+
+    pub fn ncols(&self) -> usize {
+        self.0.ncols()
+    }
+
+    /// Fetch a reference to the inner matrix.
+    pub fn inner(&self) -> &nalgebra::DMatrix<Escape> {
+        &self.0
+    }
+
+    /// Fetch a mutable reference to the inner matrix.
+    pub fn inner_mut(&mut self) -> &nalgebra::DMatrix<Escape> {
+        &mut self.0
+    }
+
     pub fn iter(&self) -> EMatrixRefIterator {
         EMatrixRefIterator {
             mat: self,
