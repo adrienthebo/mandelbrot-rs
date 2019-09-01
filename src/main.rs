@@ -104,7 +104,7 @@ fn draw_frame<W: Write>(
     bounds: Bounds,
 ) -> Result<(), crate::Error> {
     let render_start: Instant = Instant::now();
-    let mat = rctx.render(bounds);
+    let mat = rctx.to_ematrix(bounds);
     let buffer = ematrix_to_frame(&mat, bounds);
     let render_stop: Instant = Instant::now();
 
@@ -152,7 +152,7 @@ fn screenshot(rctx: &RenderContext, bounds: Bounds) -> Result<(), crate::Error> 
         loc: imgen_loc,
         holomorphic: rctx.holomorphic.clone(),
     };
-    let mat = imgen_app.render(imgen_bounds);
+    let mat = imgen_app.to_ematrix(imgen_bounds);
 
     write_loc(&imgen_app)?;
     write_ematrix(&mat)?;

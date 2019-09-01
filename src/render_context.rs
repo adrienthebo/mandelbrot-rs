@@ -46,7 +46,7 @@ impl RenderContext {
     ///
     /// This fn is the most expensive operation in the application.
     ///
-    pub fn render(&self, bounds: Bounds) -> EMatrix {
+    pub fn to_ematrix(&self, bounds: Bounds) -> EMatrix {
         let y_iter = 0..bounds.0;
         let x_iter = 0..bounds.1;
 
