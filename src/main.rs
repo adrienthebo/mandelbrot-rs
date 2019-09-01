@@ -241,9 +241,12 @@ fn run_tui() -> std::result::Result<(), crate::Error> {
                 .title("Sidebar")
                 .borders(Borders::ALL)
                 .render(&mut f, chunks[0]);
-            Block::default()
-                .borders(Borders::NONE)
-                .render(&mut f, chunks[1]);
+
+            rctx.render(&mut f, chunks[1]);
+
+            //Block::default()
+            //    .borders(Borders::NONE)
+            //    .render(&mut f, chunks[1]);
         })?;
 
         match (&mut stdin).keys().next() {
