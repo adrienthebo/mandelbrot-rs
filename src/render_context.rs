@@ -123,3 +123,29 @@ pub enum RctxTransform {
     ToggleHolo,
     Reset,
 }
+
+impl tui::widgets::Widget for RenderContext {
+    fn draw(&mut self, rect: tui::layout::Rect, buf: &mut tui::buffer::Buffer) {
+        //let bounds: Bounds = (rect.y, rect.x);
+        let bounds: Bounds = (rect.height, rect.width);
+
+        let sr = crate::SineRGB::default();
+
+        let ematrix = RenderContext::to_ematrix(self, bounds);
+
+        for yi in 0..bounds.0 {
+            for xi in 0..bounds.1 {
+                let escape = ematrix.index((yi as usize, xi as usize));
+                let rgb = sr.rgb(*escape);
+
+                //let color = tui::style::Color::Rgb(rgb.0, rgb.1, rgb.2);
+                let color = tui::style::Color::Rgb((yi) as u8, (xi) as u8, rgb.2);
+
+                let mut style = tui::style::Style::default();
+                style.bg = color;
+                let mut cell = buf.get_mut(xi + rect.x, yi + rect.y);
+                cell.style = style;
+            }
+        }
+    }
+}
