@@ -164,7 +164,7 @@ fn write_ematrix(ematrix: &EMatrix) -> io::Result<()> {
         .duration_since(SystemTime::UNIX_EPOCH)
         .unwrap();
     let path = format!("mb-{}.png", unix_secs.as_secs() as u64);
-    let img = ematrix.clone().into_img();
+    let img = ematrix.clone().to_img();
     img.save(path)
 }
 

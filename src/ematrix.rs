@@ -61,8 +61,8 @@ impl EMatrix {
         }
     }
 
-    pub fn into_img(self) -> image::RgbImage {
-        let mat = self.0;
+    pub fn to_img(&self) -> image::RgbImage {
+        let mat = &self.0;
         let sr = crate::SineRGB::default();
 
         image::RgbImage::from_fn(mat.ncols() as u32, mat.nrows() as u32, move |x, y| {
