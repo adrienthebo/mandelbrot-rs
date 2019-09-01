@@ -147,5 +147,6 @@ impl tui::widgets::Widget for RenderContext {
                 cell.style = style;
             }
         }
+        buf.set_string(rect.x, rect.y, format!("bounds={:?}, rect={:?}", bounds, rect), tui::style::Style::default());
     }
 }
