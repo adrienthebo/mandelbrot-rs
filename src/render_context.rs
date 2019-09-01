@@ -16,6 +16,7 @@ use crate::Loc;
 use crate::Mandelbrot;
 use itertools::Itertools;
 use rayon::prelude::*;
+use std::ops::Index;
 
 #[derive(Clone, Debug)]
 pub struct RenderContext {

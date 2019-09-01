@@ -1,6 +1,7 @@
 //! An escape matrix contains an evaluated section of one of the holomorphic functions.
 
 use crate::Escape;
+use std::ops::Index;
 
 /// An EMatrix maps the cells in a frame to corresponding evaluated escapes.
 #[derive(Debug, Clone)]
@@ -47,6 +48,13 @@ impl EMatrix {
             let term_rgb = sr.rgb(*escape);
             image::Rgb([term_rgb.0, term_rgb.1, term_rgb.2])
         })
+    }
+}
+
+impl std::ops::Index<(usize, usize)> for EMatrix {
+    type Output = Escape;
+    fn index(&self, pos: (usize, usize)) -> &Self::Output {
+        self.0.index(pos)
     }
 }
 
