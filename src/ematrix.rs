@@ -13,6 +13,10 @@ impl EMatrix {
         Self(mat)
     }
 
+    pub fn from_dmatrix(mat: nalgebra::DMatrix<Escape>) -> Self {
+        Self(mat)
+    }
+
     pub fn get_mut(&mut self, index: usize) -> Option<&mut Escape> {
         self.0.get_mut(index)
     }
