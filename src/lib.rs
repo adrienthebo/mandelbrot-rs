@@ -220,13 +220,16 @@ impl From<&Julia> for Mandelbrot {
 }
 
 impl Mandelbrot {
+    const ESCAPE_VALUE: f64 = 8.;
+
     pub fn render(&self, c: Complex64, limit: u32) -> Escape {
         let mut z = Complex64 { re: 0.0, im: 0.0 };
         for i in 0..limit {
             z = z.powf(self.exp);
             z += c;
-            if z.norm_sqr() > 4.0 {
-                return Some(f64::from(i) + 1. - z.norm_sqr().log2().log2());
+            if z.norm_sqr() > Self::ESCAPE_VALUE {
+                let fract = ((z.norm_sqr().ln() / Self::ESCAPE_VALUE.ln())).ln() / self.exp.ln();
+                return Some(f64::from(i) - fract);
             }
         }
 
@@ -264,6 +267,8 @@ impl Default for Julia {
 }
 
 impl Julia {
+    const ESCAPE_VALUE: f64 = 8.;
+
     /// Create a Julia set with a given mandelbrot algorithm and
     /// re/im coordinates.
     pub fn from_c(m: &Mandelbrot, c_offset: Complex64) -> Self {
@@ -278,8 +283,9 @@ impl Julia {
         for i in 0..limit {
             z = z.powf(self.exp);
             z += self.c_offset;
-            if z.norm_sqr() > 4.0 {
-                return Some(f64::from(i) + 1. - z.norm_sqr().log2().log2());
+            if z.norm_sqr() > Self::ESCAPE_VALUE {
+                let fract = ((z.norm_sqr().ln() / Self::ESCAPE_VALUE.ln())).ln() / self.exp.ln();
+                return Some(f64::from(i) - fract);
             }
         }
 
