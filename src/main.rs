@@ -50,9 +50,12 @@ impl From<Key> for AppCmd {
             Key::Char('w') => AppCmd::Transform(RctxTransform::TranslateUp),
             Key::Char('s') => AppCmd::Transform(RctxTransform::TranslateDown),
 
-            // Increase the limit on iterations to escape.
+            // Increase/decrease the limit on iterations to escape.
             Key::Char('t') => AppCmd::Transform(RctxTransform::IncIterations),
             Key::Char('g') => AppCmd::Transform(RctxTransform::DecIterations),
+
+            Key::Char('y') => AppCmd::Transform(RctxTransform::IncPow),
+            Key::Char('h') => AppCmd::Transform(RctxTransform::DecPow),
 
             // Toggle between the Julia sets and the Mandelbrot sets.
             Key::Char('x') => AppCmd::Transform(RctxTransform::ToggleHolo),

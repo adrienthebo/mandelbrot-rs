@@ -195,6 +195,13 @@ impl SineRGB {
     }
 }
 
+/// TODO: Come up with a better name for this trait.
+pub trait Fractal {
+    fn escape(&self, c: Complex64, limit: u32) -> Escape;
+    fn exp(&self) -> f64;
+    fn exp_mut(&mut self) -> &mut f64;
+}
+
 #[derive(Clone, Debug, Serialize)]
 pub struct Mandelbrot {
     pub exp: f64,
@@ -227,6 +234,20 @@ impl Mandelbrot {
     }
 }
 
+impl Fractal for Mandelbrot {
+    fn escape(&self, c: Complex64, limit: u32) -> Escape {
+        self.render(c, limit)
+    }
+
+    fn exp(&self) -> f64 {
+       self.exp
+    }
+
+    fn exp_mut(&mut self) -> &mut f64 {
+        &mut self.exp
+    }
+}
+
 #[derive(Clone, Debug, Serialize)]
 pub struct Julia {
     pub exp: f64,
@@ -255,7 +276,7 @@ impl Julia {
     fn render(&self, c: Complex64, limit: u32) -> Escape {
         let mut z = c.clone();
         for i in 0..limit {
-            z *= z;
+            z = z.powf(self.exp);
             z += self.c_offset;
             if z.norm_sqr() > 4.0 {
                 return Some(i);
@@ -266,9 +287,25 @@ impl Julia {
     }
 }
 
+impl Fractal for Julia {
+    fn escape(&self, c: Complex64, limit: u32) -> Escape {
+        self.render(c, limit)
+    }
+
+    fn exp(&self) -> f64 {
+       self.exp
+    }
+
+    fn exp_mut(&mut self) -> &mut f64 {
+        &mut self.exp
+    }
+}
+
 /// A complex-valued function that is locally differentiable.
 ///
 /// In more reasonable terms, this is either a Julia set or a Mandelbrot set.
+///
+/// TODO: This is an abuse of the term `Holomorphic`, rethink this.
 #[derive(Clone, Debug, Serialize)]
 pub enum Holomorphic {
     Julia(Julia),
@@ -287,5 +324,25 @@ impl Holomorphic {
 impl Default for Holomorphic {
     fn default() -> Self {
         Holomorphic::Mandelbrot(Mandelbrot::default())
+    }
+}
+
+impl Fractal for Holomorphic {
+    fn escape(&self, c: Complex64, limit: u32) -> Escape {
+        self.render(c, limit)
+    }
+
+    fn exp(&self) -> f64 {
+        match self {
+            Holomorphic::Mandelbrot(ref m) => m.exp,
+            Holomorphic::Julia(ref j) => j.exp,
+        }
+    }
+
+    fn exp_mut(&mut self) -> &mut f64 {
+        match self {
+            Holomorphic::Mandelbrot(ref mut m) => &mut m.exp,
+            Holomorphic::Julia(ref mut j) => &mut j.exp,
+        }
     }
 }

@@ -10,6 +10,7 @@
 use crate::Bounds;
 use crate::EMatrix;
 use crate::Escape;
+use crate::Fractal;
 use crate::Holomorphic;
 use crate::Julia;
 use crate::Loc;
@@ -40,6 +41,7 @@ impl RenderContext {
     const TRANSLATE_SCALAR: f64 = 10.;
     const SCALE_SCALAR: f64 = 2.;
     const ITERATIONS_SCALAR: u32 = 25;
+    const EXP_SCALAR: f64 = 0.025;
 
     /// Generate an escape matrix from the current application context.
     ///
@@ -99,6 +101,13 @@ impl RenderContext {
                 std::mem::replace(&mut self.loc, Loc::default());
             }
 
+            RctxTransform::IncPow => {
+                *self.holomorphic.exp_mut() += Self::EXP_SCALAR;
+            }
+            RctxTransform::DecPow => {
+                *self.holomorphic.exp_mut() -= Self::EXP_SCALAR;
+            }
+
             RctxTransform::ToggleHolo => {
                 let new_holo: Holomorphic;
                 match self.holomorphic {
@@ -134,6 +143,8 @@ pub enum RctxTransform {
     IncIterations,
     DecIterations,
     ToggleHolo,
+    IncPow,
+    DecPow,
     Reset,
 }
 
