@@ -101,10 +101,10 @@ impl RenderContext {
                 std::mem::replace(&mut self.loc, Loc::default());
             }
 
-            RctxTransform::IncPow => {
+            RctxTransform::IncExp => {
                 *self.holomorphic.exp_mut() += Self::EXP_SCALAR;
             }
-            RctxTransform::DecPow => {
+            RctxTransform::DecExp => {
                 *self.holomorphic.exp_mut() -= Self::EXP_SCALAR;
             }
 
@@ -143,8 +143,8 @@ pub enum RctxTransform {
     IncIterations,
     DecIterations,
     ToggleHolo,
-    IncPow,
-    DecPow,
+    IncExp,
+    DecExp,
     Reset,
 }
 

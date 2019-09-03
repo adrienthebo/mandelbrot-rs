@@ -54,8 +54,8 @@ impl From<Key> for AppCmd {
             Key::Char('t') => AppCmd::Transform(RctxTransform::IncIterations),
             Key::Char('g') => AppCmd::Transform(RctxTransform::DecIterations),
 
-            Key::Char('y') => AppCmd::Transform(RctxTransform::IncPow),
-            Key::Char('h') => AppCmd::Transform(RctxTransform::DecPow),
+            Key::Char('y') => AppCmd::Transform(RctxTransform::IncExp),
+            Key::Char('h') => AppCmd::Transform(RctxTransform::DecExp),
 
             // Toggle between the Julia sets and the Mandelbrot sets.
             Key::Char('x') => AppCmd::Transform(RctxTransform::ToggleHolo),
