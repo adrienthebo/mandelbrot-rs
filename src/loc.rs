@@ -1,7 +1,6 @@
 //! A location and magnification within the complex plane.
 
 use crate::Bounds;
-use crate::Offset;
 use crate::Pos;
 use num::complex::Complex64;
 use serde::Serialize;
