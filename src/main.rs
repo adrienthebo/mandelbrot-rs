@@ -152,7 +152,7 @@ fn screenshot(rctx: &RenderContext, bounds: Bounds) -> Result<(), crate::Error> 
     };
 
     let mut imgen_loc = rctx.loc.scale(bounds, imgen_bounds);
-    imgen_loc.comp.1 = 1.;
+    imgen_loc.comp = (1., 1.,);
 
     let imgen_app = RenderContext {
         loc: imgen_loc,

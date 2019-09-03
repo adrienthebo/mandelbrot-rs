@@ -216,7 +216,7 @@ impl Mandelbrot {
     pub fn render(&self, c: Complex64, limit: u32) -> Escape {
         let mut z = Complex64 { re: 0.0, im: 0.0 };
         for i in 0..limit {
-            z *= z;
+            z = z.powf(self.exp);
             z += c;
             if z.norm_sqr() > 4.0 {
                 return Some(i);
