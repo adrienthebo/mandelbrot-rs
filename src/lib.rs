@@ -60,6 +60,9 @@ impl Bounds {
     }
 }
 
+/// The dimensions of a TTY, in row major order.
+///
+/// This type will commonly be generated from `termion::terminal_size()`.
 type TerminalSize = (u16, u16);
 
 impl From<TerminalSize> for Bounds {
@@ -104,6 +107,7 @@ pub struct Offset {
     pub y: i32,
 }
 
+/// A position within a matrix or image, in row major order.
 type PositionTuple = (u16, u16);
 
 impl From<PositionTuple> for Pos {
