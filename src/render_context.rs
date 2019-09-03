@@ -104,6 +104,7 @@ impl RenderContext {
                 match self.holomorphic {
                     Holomorphic::Julia(ref j) => {
                         new_holo = Holomorphic::Mandelbrot(Mandelbrot::from(j));
+                        self.loc.move_to(j.c_offset);
                     }
                     Holomorphic::Mandelbrot(ref m) => {
                         new_holo = Holomorphic::Julia(Julia::from_c(m, self.loc.origin()))

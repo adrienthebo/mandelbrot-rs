@@ -81,6 +81,12 @@ impl Loc {
             im: self.im0,
         }
     }
+
+    /// Move the location to the position given by an imaginary number.
+    pub fn move_to(&mut self, c: Complex64) {
+        self.im0 = c.im;
+        self.re0 = c.re;
+    }
 }
 
 impl Default for Loc {
