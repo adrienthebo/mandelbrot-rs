@@ -88,8 +88,8 @@ fn cell_ansi(pos: (u16, u16), escape: Escape) -> String {
 }
 
 fn ematrix_to_frame(mat: &EMatrix, bounds: Bounds) -> String {
-    let y_iter = 0..bounds.0;
-    let x_iter = 0..bounds.1;
+    let y_iter = 0..bounds.height;
+    let x_iter = 0..bounds.width;
 
     y_iter
         .cartesian_product(x_iter)
@@ -141,9 +141,11 @@ fn draw_frame<W: Write>(
     Ok(())
 }
 
+/// Generate an image and location data for a given render context and bounds.
+///
+/// TODO: handle write errors without panicking.
 fn screenshot(rctx: &RenderContext, bounds: Bounds) -> Result<(), crate::Error> {
-    // TODO: handle write errors without panicking.
-    let imgen_bounds = (4000, 4000);
+    let imgen_bounds = Bounds { width: 4000, height: 4000 };
 
     let mut imgen_loc = rctx.loc.scale(bounds, imgen_bounds);
     imgen_loc.comp.1 = 1.;
@@ -185,12 +187,12 @@ fn run_termion() -> std::result::Result<(), crate::Error> {
     let stdout = io::stdout().into_raw_mode().unwrap();
     let mut screen = AlternateScreen::from(stdout);
 
-    let mut rctx = RenderContext::with_loc(Loc::for_bounds(termion::terminal_size()?));
+    let mut rctx = RenderContext::with_loc(Loc::for_bounds(termion::terminal_size()?.into()));
     write!(screen, "{}", ToAlternateScreen).unwrap();
     write!(screen, "{}", termion::cursor::Hide).unwrap();
 
     loop {
-        let bounds = termion::terminal_size()?;
+        let bounds: Bounds = termion::terminal_size()?.into();
         draw_frame(&mut screen, &rctx, bounds)?;
         match (&mut stdin).keys().next() {
             None | Some(Err(_)) => break, // Stdin was closed or could not be read, shut down.
@@ -227,10 +229,10 @@ fn run_tui() -> std::result::Result<(), crate::Error> {
     let mut terminal = Terminal::new(backend)?;
     terminal.hide_cursor()?;
 
-    let mut rctx = RenderContext::with_loc(Loc::for_bounds(termion::terminal_size()?));
+    let mut rctx = RenderContext::with_loc(Loc::for_bounds(termion::terminal_size()?.into()));
 
     loop {
-        let bounds = termion::terminal_size()?;
+        let bounds: Bounds = termion::terminal_size()?.into();
         terminal.draw(|mut f| {
             let chunks = Layout::default()
                 .direction(Direction::Horizontal)

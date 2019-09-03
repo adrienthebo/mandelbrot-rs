@@ -45,7 +45,22 @@ impl From<io::Error> for Error {
 pub type Escape = Option<u32>;
 
 /// The bounds for a given image, in column major order.
-pub type Bounds = (u16, u16);
+#[derive(Copy, Clone, Debug)]
+pub struct Bounds {
+    pub height: u16,
+    pub width: u16,
+}
+
+type TerminalSize = (u16, u16);
+
+impl From<TerminalSize> for Bounds {
+    // NOTE: this implementation swaps the height and width, and this assumption is scattered
+    // across the codebase. We'll need to fix this in a later pass; for now we're just moving from
+    // a tuple with no semantics to well defined types.
+    fn from(ts: TerminalSize) -> Self {
+        Self { height: ts.0, width: ts.1 }
+    }
+}
 
 /// A single color channel for HSV/RGB conversion.
 #[derive(Debug, Clone)]

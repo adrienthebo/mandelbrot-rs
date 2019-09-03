@@ -47,8 +47,8 @@ impl RenderContext {
     /// This fn is the most expensive operation in the application.
     ///
     pub fn to_ematrix(&self, bounds: Bounds) -> EMatrix {
-        let y_iter = 0..bounds.0;
-        let x_iter = 0..bounds.1;
+        let y_iter = 0..bounds.height;
+        let x_iter = 0..bounds.width;
 
         let escapes: Vec<Escape> = y_iter
             .cartesian_product(x_iter)
@@ -58,7 +58,7 @@ impl RenderContext {
             .map(|c| self.holomorphic.render(c, self.loc.max_iter))
             .collect();
 
-        EMatrix::from_vec(usize::from(bounds.0), usize::from(bounds.1), escapes)
+        EMatrix::from_vec(usize::from(bounds.height), usize::from(bounds.width), escapes)
     }
 
     /// Create a new application context with a pre-defined location.
@@ -126,15 +126,14 @@ pub enum RctxTransform {
 
 impl tui::widgets::Widget for RenderContext {
     fn draw(&mut self, rect: tui::layout::Rect, buf: &mut tui::buffer::Buffer) {
-        //let bounds: Bounds = (rect.y, rect.x);
-        let bounds: Bounds = (rect.height, rect.width);
+        let bounds = Bounds { width: rect.width, height: rect.height };
 
         let sr = crate::SineRGB::default();
 
         let ematrix = RenderContext::to_ematrix(self, bounds);
 
-        for yi in 0..bounds.0 {
-            for xi in 0..bounds.1 {
+        for yi in 0..bounds.height {
+            for xi in 0..bounds.width {
                 let escape = ematrix.index((yi as usize, xi as usize));
                 let rgb = sr.rgb(*escape);
 

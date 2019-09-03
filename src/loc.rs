@@ -28,8 +28,8 @@ pub struct Loc {
 impl Loc {
     /// Create a location scaled appropriately for a given bounds.
     pub fn for_bounds(bounds: Bounds) -> Self {
-        let re_steps: f64 = 1.5 / f64::from(bounds.0);
-        let im_steps: f64 = 1.5 / f64::from(bounds.1);
+        let re_steps: f64 = 1.5 / f64::from(bounds.height);
+        let im_steps: f64 = 1.5 / f64::from(bounds.width);
 
         let scalar = if re_steps > im_steps {
             re_steps
@@ -49,7 +49,7 @@ impl Loc {
     /// Determine the complex value at a given offset of the origin with respect to the provided
     /// bounds.
     pub fn complex_at(&self, bounds: Bounds, pos: (u16, u16)) -> Complex64 {
-        let origin: (i32, i32) = (i32::from(bounds.0 / 2), i32::from(bounds.1 / 2));
+        let origin: (i32, i32) = (i32::from(bounds.height / 2), i32::from(bounds.width / 2));
         let offset: (i32, i32) = (i32::from(pos.0) - origin.0, i32::from(pos.1) - origin.1);
 
         Complex64 {
@@ -63,8 +63,8 @@ impl Loc {
     ///
     /// This acts to downscale/upscale a location.
     pub fn scale(&self, old: Bounds, new: Bounds) -> Self {
-        let re_scalar = f64::from(new.0) / f64::from(old.0);
-        let im_scalar = f64::from(new.1) / f64::from(old.1);
+        let re_scalar = f64::from(new.height) / f64::from(old.height);
+        let im_scalar = f64::from(new.width) / f64::from(old.width);
         let min = if re_scalar < im_scalar {
             re_scalar
         } else {
