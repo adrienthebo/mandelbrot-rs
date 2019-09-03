@@ -42,7 +42,7 @@ impl From<io::Error> for Error {
 }
 
 /// An Escape represents the status of an evaluated point's escape iteration.
-pub type Escape = Option<u32>;
+pub type Escape = Option<f64>;
 
 /// The bounds for a given image, in column major order.
 #[derive(Copy, Clone, Debug)]
@@ -226,7 +226,7 @@ impl Mandelbrot {
             z = z.powf(self.exp);
             z += c;
             if z.norm_sqr() > 4.0 {
-                return Some(i);
+                return Some(f64::from(i) + 1. - z.norm_sqr().log2().log2());
             }
         }
 
@@ -279,7 +279,7 @@ impl Julia {
             z = z.powf(self.exp);
             z += self.c_offset;
             if z.norm_sqr() > 4.0 {
-                return Some(i);
+                return Some(f64::from(i) + 1. - z.norm_sqr().log2().log2());
             }
         }
 
