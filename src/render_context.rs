@@ -139,14 +139,8 @@ impl tui::widgets::Widget for RenderContext {
             for xi in 0..bounds.width {
                 let escape = ematrix.index((yi as usize, xi as usize));
                 let rgb = sr.rgb(*escape);
-
-                //let color = tui::style::Color::Rgb(rgb.0, rgb.1, rgb.2);
-                let color = tui::style::Color::Rgb((yi) as u8, (xi) as u8, rgb.2);
-
-                let mut style = tui::style::Style::default();
-                style.bg = color;
-                let mut cell = buf.get_mut(xi + rect.x, yi + rect.y);
-                cell.style = style;
+                let color = tui::style::Color::Rgb(rgb.0, rgb.1, rgb.2);
+                buf.get_mut(xi + rect.x, yi + rect.y).set_bg(color);
             }
         }
         buf.set_string(rect.x, rect.y, format!("bounds={:?}, rect={:?}", bounds, rect), tui::style::Style::default());
