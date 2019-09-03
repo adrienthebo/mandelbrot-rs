@@ -67,7 +67,10 @@ type TerminalSize = (u16, u16);
 
 impl From<TerminalSize> for Bounds {
     fn from(ts: TerminalSize) -> Self {
-        Self { width: ts.0, height: ts.1, }
+        Self {
+            width: ts.0,
+            height: ts.1,
+        }
     }
 }
 
@@ -75,7 +78,7 @@ impl From<TerminalSize> for Bounds {
 #[derive(Copy, Clone, Debug)]
 pub struct Pos {
     pub x: u16,
-    pub y: u16
+    pub y: u16,
 }
 
 impl std::ops::Sub for Pos {
@@ -112,7 +115,7 @@ type PositionTuple = (u16, u16);
 
 impl From<PositionTuple> for Pos {
     fn from(pt: PositionTuple) -> Self {
-        Self { x: pt.0, y: pt.1, }
+        Self { x: pt.0, y: pt.1 }
     }
 }
 

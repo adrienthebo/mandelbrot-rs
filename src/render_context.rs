@@ -8,13 +8,13 @@
 //! - Add a related type that binds a rendering context with a specific bounds.
 
 use crate::Bounds;
-use crate::Pos;
 use crate::EMatrix;
 use crate::Escape;
 use crate::Holomorphic;
 use crate::Julia;
 use crate::Loc;
 use crate::Mandelbrot;
+use crate::Pos;
 use itertools::Itertools;
 use rayon::prelude::*;
 use std::ops::Index;
@@ -60,7 +60,11 @@ impl RenderContext {
             .map(|c| self.holomorphic.render(c, self.loc.max_iter))
             .collect();
 
-        EMatrix::from_vec(usize::from(bounds.height), usize::from(bounds.width), escapes)
+        EMatrix::from_vec(
+            usize::from(bounds.height),
+            usize::from(bounds.width),
+            escapes,
+        )
     }
 
     /// Create a new application context with a pre-defined location.
@@ -73,9 +77,7 @@ impl RenderContext {
 
     pub fn transform(&mut self, transform: &RctxTransform) {
         match *transform {
-            RctxTransform::TranslateUp => {
-                self.loc.im0 -= self.loc.scalar * Self::TRANSLATE_SCALAR
-            }
+            RctxTransform::TranslateUp => self.loc.im0 -= self.loc.scalar * Self::TRANSLATE_SCALAR,
             RctxTransform::TranslateDown => {
                 self.loc.im0 += self.loc.scalar * Self::TRANSLATE_SCALAR
             }
@@ -129,7 +131,10 @@ pub enum RctxTransform {
 
 impl tui::widgets::Widget for RenderContext {
     fn draw(&mut self, rect: tui::layout::Rect, buf: &mut tui::buffer::Buffer) {
-        let bounds = Bounds { width: rect.width, height: rect.height };
+        let bounds = Bounds {
+            width: rect.width,
+            height: rect.height,
+        };
 
         let sr = crate::SineRGB::default();
 
@@ -143,6 +148,11 @@ impl tui::widgets::Widget for RenderContext {
                 buf.get_mut(xi + rect.x, yi + rect.y).set_bg(color);
             }
         }
-        buf.set_string(rect.x, rect.y, format!("bounds={:?}, rect={:?}", bounds, rect), tui::style::Style::default());
+        buf.set_string(
+            rect.x,
+            rect.y,
+            format!("bounds={:?}, rect={:?}", bounds, rect),
+            tui::style::Style::default(),
+        );
     }
 }

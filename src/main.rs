@@ -146,7 +146,10 @@ fn draw_frame<W: Write>(
 ///
 /// TODO: handle write errors without panicking.
 fn screenshot(rctx: &RenderContext, bounds: Bounds) -> Result<(), crate::Error> {
-    let imgen_bounds = Bounds { width: 4000, height: 4000 };
+    let imgen_bounds = Bounds {
+        width: 4000,
+        height: 4000,
+    };
 
     let mut imgen_loc = rctx.loc.scale(bounds, imgen_bounds);
     imgen_loc.comp.1 = 1.;
