@@ -8,6 +8,7 @@
 //! - Add a related type that binds a rendering context with a specific bounds.
 
 use crate::Bounds;
+use crate::Pos;
 use crate::EMatrix;
 use crate::Escape;
 use crate::Holomorphic;
@@ -50,11 +51,12 @@ impl RenderContext {
         let y_iter = 0..bounds.height;
         let x_iter = 0..bounds.width;
 
-        let escapes: Vec<Escape> = y_iter
-            .cartesian_product(x_iter)
-            .collect::<Vec<(u16, u16)>>()
+        let escapes: Vec<Escape> = x_iter
+            .cartesian_product(y_iter)
+            .map(|pt| Pos::from(pt))
+            .collect::<Vec<Pos>>()
             .par_iter()
-            .map(|pos| self.loc.complex_at(bounds, pos.clone()))
+            .map(|pos| self.loc.complex_at(bounds, *pos))
             .map(|c| self.holomorphic.render(c, self.loc.max_iter))
             .collect();
 
@@ -71,11 +73,12 @@ impl RenderContext {
 
     pub fn transform(&mut self, transform: &RctxTransform) {
         match *transform {
-            RctxTransform::TranslateUp => self.loc.im0 -= self.loc.scalar * Self::TRANSLATE_SCALAR,
+            RctxTransform::TranslateUp => {
+                self.loc.im0 -= self.loc.scalar * Self::TRANSLATE_SCALAR
+            }
             RctxTransform::TranslateDown => {
                 self.loc.im0 += self.loc.scalar * Self::TRANSLATE_SCALAR
             }
-
             RctxTransform::TranslateLeft => {
                 self.loc.re0 -= self.loc.scalar * Self::TRANSLATE_SCALAR
             }

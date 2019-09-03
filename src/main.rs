@@ -73,7 +73,7 @@ impl From<Key> for AppCmd {
 ///
 /// Note: generating strings for every element is highly inefficient; we
 /// should really be appending to a string slice. :shrug:
-fn cell_ansi(pos: (u16, u16), escape: Escape) -> String {
+fn cell_ansi(pos: Pos, escape: Escape) -> String {
     // PERF: a coloring object should be passed instead of generated for each value.
     let sr = SineRGB::default();
     let rgb = sr.rgb(escape);
@@ -81,7 +81,7 @@ fn cell_ansi(pos: (u16, u16), escape: Escape) -> String {
 
     format!(
         "{}{}{}",
-        termion::cursor::Goto(pos.0 + 1, pos.1 + 1),
+        termion::cursor::Goto(pos.x + 1, pos.y + 1),
         termion::color::Bg(color),
         " "
     )
@@ -91,8 +91,9 @@ fn ematrix_to_frame(mat: &EMatrix, bounds: Bounds) -> String {
     let y_iter = 0..bounds.height;
     let x_iter = 0..bounds.width;
 
-    y_iter
-        .cartesian_product(x_iter)
+    x_iter
+        .cartesian_product(y_iter)
+        .map(|pt| Pos::from(pt))
         .zip(mat.iter())
         .map(move |(pos, escape)| cell_ansi(pos, *escape))
         .collect()

@@ -51,14 +51,42 @@ pub struct Bounds {
     pub width: u16,
 }
 
+impl Bounds {
+    pub fn center(&self) -> Pos {
+        Pos {
+            x: self.width / 2,
+            y: self.height / 2,
+        }
+    }
+}
+
 type TerminalSize = (u16, u16);
 
 impl From<TerminalSize> for Bounds {
-    // NOTE: this implementation swaps the height and width, and this assumption is scattered
-    // across the codebase. We'll need to fix this in a later pass; for now we're just moving from
-    // a tuple with no semantics to well defined types.
     fn from(ts: TerminalSize) -> Self {
-        Self { height: ts.0, width: ts.1 }
+        Self { width: ts.0, height: ts.1, }
+    }
+}
+
+/// A position within some matrix, e.g. an escape matrix, color matrix, or image.
+#[derive(Copy, Clone, Debug)]
+pub struct Pos {
+    pub x: u16,
+    pub y: u16
+}
+
+/// A position offset from an origin.
+#[derive(Copy, Clone, Debug)]
+pub struct Offset {
+    pub x: i32,
+    pub y: i32,
+}
+
+type PositionTuple = (u16, u16);
+
+impl From<PositionTuple> for Pos {
+    fn from(pt: PositionTuple) -> Self {
+        Self { x: pt.0, y: pt.1, }
     }
 }
 

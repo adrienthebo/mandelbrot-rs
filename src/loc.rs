@@ -1,6 +1,8 @@
 //! A location and magnification within the complex plane.
 
 use crate::Bounds;
+use crate::Pos;
+use crate::Offset;
 use num::complex::Complex64;
 use serde::Serialize;
 
@@ -28,8 +30,8 @@ pub struct Loc {
 impl Loc {
     /// Create a location scaled appropriately for a given bounds.
     pub fn for_bounds(bounds: Bounds) -> Self {
-        let re_steps: f64 = 1.5 / f64::from(bounds.height);
-        let im_steps: f64 = 1.5 / f64::from(bounds.width);
+        let re_steps: f64 = 1.5 / f64::from(bounds.width);
+        let im_steps: f64 = 1.5 / f64::from(bounds.height);
 
         let scalar = if re_steps > im_steps {
             re_steps
@@ -39,8 +41,8 @@ impl Loc {
 
         Self {
             im0: 0.,
-            re0: -0.5,
-            comp: (1., 2.),
+            re0: -0.,
+            comp: (2., 1.),
             scalar: scalar,
             max_iter: 100,
         }
@@ -48,13 +50,17 @@ impl Loc {
 
     /// Determine the complex value at a given offset of the origin with respect to the provided
     /// bounds.
-    pub fn complex_at(&self, bounds: Bounds, pos: (u16, u16)) -> Complex64 {
-        let origin: (i32, i32) = (i32::from(bounds.height / 2), i32::from(bounds.width / 2));
-        let offset: (i32, i32) = (i32::from(pos.0) - origin.0, i32::from(pos.1) - origin.1);
+    pub fn complex_at(&self, bounds: Bounds, pos: Pos) -> Complex64 {
+        let origin = bounds.center();
+
+        let offset = Offset {
+            x: i32::from(pos.x) - i32::from(origin.x),
+            y: i32::from(pos.y) - i32::from(origin.y),
+        };
 
         Complex64 {
-            re: self.comp.0 * f64::from(offset.0) * self.scalar + self.re0,
-            im: self.comp.1 * f64::from(offset.1) * self.scalar + self.im0,
+            im: self.comp.0 * f64::from(offset.y) * self.scalar + self.im0,
+            re: self.comp.1 * f64::from(offset.x) * self.scalar + self.re0,
         }
     }
 
@@ -63,8 +69,8 @@ impl Loc {
     ///
     /// This acts to downscale/upscale a location.
     pub fn scale(&self, old: Bounds, new: Bounds) -> Self {
-        let re_scalar = f64::from(new.height) / f64::from(old.height);
-        let im_scalar = f64::from(new.width) / f64::from(old.width);
+        let re_scalar = f64::from(new.width) / f64::from(old.width);
+        let im_scalar = f64::from(new.height) / f64::from(old.height);
         let min = if re_scalar < im_scalar {
             re_scalar
         } else {
@@ -88,7 +94,7 @@ impl Default for Loc {
         Self {
             im0: 0.0,
             re0: 0.0,
-            comp: (1., 2.),
+            comp: (2., 1.),
             scalar: 0.1,
             max_iter: 100,
         }
