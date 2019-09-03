@@ -104,9 +104,16 @@ impl RenderContext {
                 match self.holomorphic {
                     Holomorphic::Julia(ref j) => {
                         new_holo = Holomorphic::Mandelbrot(Mandelbrot::from(j));
+                        // When switching from a Julia fractal to the mandelbrot fractal, we need
+                        // to change the location specified in the Julia offset. This allows the
+                        // user to switch back and forth between the two fractals to observe how
+                        // Julia fractals change as the position in the mandelbrot set changes.
                         self.loc.move_to(j.c_offset);
                     }
                     Holomorphic::Mandelbrot(ref m) => {
+                        // When switching from the mandelbrot fractal to a Julia fractal, the
+                        // current position generally maps to a similar looking position. The
+                        // location can be preserved.
                         new_holo = Holomorphic::Julia(Julia::from_c(m, self.loc.origin()))
                     }
                 }
@@ -159,7 +166,10 @@ impl tui::widgets::Widget for RenderContext {
         buf.set_string(
             rect.x,
             rect.y + 1,
-            format!("termion::terminalsize={:?}", termion::terminal_size().unwrap()),
+            format!(
+                "termion::terminalsize={:?}",
+                termion::terminal_size().unwrap()
+            ),
             tui::style::Style::default(),
         );
     }
