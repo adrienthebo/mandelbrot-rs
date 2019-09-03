@@ -139,19 +139,19 @@ impl SineChannel {
             Self {
                 coef: Self::COEF,
                 freq: Self::FREQ,
-                phase: 0.,
+                phase: std::f64::consts::PI * 4. / 3.,
                 offset: Self::OFFSET,
             },
             Self {
                 coef: Self::COEF,
                 freq: Self::FREQ,
-                phase: std::f64::consts::PI / 3.,
+                phase: std::f64::consts::PI * 5. / 3.,
                 offset: Self::OFFSET,
             },
             Self {
                 coef: Self::COEF,
                 freq: Self::FREQ,
-                phase: std::f64::consts::PI * 2. / 3.,
+                phase: std::f64::consts::PI * 6. / 3.,
                 offset: Self::OFFSET,
             },
         )
