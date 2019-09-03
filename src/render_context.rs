@@ -154,5 +154,12 @@ impl tui::widgets::Widget for RenderContext {
             format!("bounds={:?}, rect={:?}", bounds, rect),
             tui::style::Style::default(),
         );
+
+        buf.set_string(
+            rect.x,
+            rect.y + 1,
+            format!("termion::terminalsize={:?}", termion::terminal_size().unwrap()),
+            tui::style::Style::default(),
+        );
     }
 }
