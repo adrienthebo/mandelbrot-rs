@@ -75,6 +75,28 @@ pub struct Pos {
     pub y: u16
 }
 
+impl std::ops::Sub for Pos {
+    type Output = Offset;
+
+    fn sub(self, other: Pos) -> Self::Output {
+        Self::Output {
+            x: i32::from(self.x) - i32::from(other.x),
+            y: i32::from(self.y) - i32::from(other.y),
+        }
+    }
+}
+
+impl std::ops::Add for Pos {
+    type Output = Offset;
+
+    fn add(self, other: Pos) -> Self::Output {
+        Self::Output {
+            x: i32::from(self.x) + i32::from(other.x),
+            y: i32::from(self.y) + i32::from(other.y),
+        }
+    }
+}
+
 /// A position offset from an origin.
 #[derive(Copy, Clone, Debug)]
 pub struct Offset {

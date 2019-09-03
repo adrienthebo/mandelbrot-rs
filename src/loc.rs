@@ -51,12 +51,7 @@ impl Loc {
     /// Determine the complex value at a given offset of the origin with respect to the provided
     /// bounds.
     pub fn complex_at(&self, bounds: Bounds, pos: Pos) -> Complex64 {
-        let origin = bounds.center();
-
-        let offset = Offset {
-            x: i32::from(pos.x) - i32::from(origin.x),
-            y: i32::from(pos.y) - i32::from(origin.y),
-        };
+        let offset = pos - bounds.center();
 
         Complex64 {
             im: self.comp.0 * f64::from(offset.y) * self.scalar + self.im0,
