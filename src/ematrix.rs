@@ -1,7 +1,6 @@
 //! An escape matrix contains an evaluated section of one of the holomorphic functions.
 
 use crate::Escape;
-use std::ops::Index;
 
 /// An EMatrix maps the cells in a frame to corresponding evaluated escapes.
 #[derive(Debug, Clone)]
