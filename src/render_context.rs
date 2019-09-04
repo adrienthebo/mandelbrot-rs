@@ -10,8 +10,8 @@
 use crate::Bounds;
 use crate::EMatrix;
 use crate::Escape;
-use crate::Fractal;
-use crate::Holomorphic;
+use crate::ComplexFn;
+use crate::PolyComplexFn;
 use crate::Julia;
 use crate::Loc;
 use crate::Mandelbrot;
@@ -25,14 +25,14 @@ pub struct RenderContext {
     /// The current loc.
     pub loc: Loc,
     /// The active holomorphic function.
-    pub holomorphic: Holomorphic,
+    pub holomorphic: PolyComplexFn,
 }
 
 impl Default for RenderContext {
     fn default() -> Self {
         Self {
             loc: Loc::default(),
-            holomorphic: Holomorphic::default(),
+            holomorphic: PolyComplexFn::default(),
         }
     }
 }
@@ -73,7 +73,7 @@ impl RenderContext {
     pub fn with_loc(loc: Loc) -> Self {
         Self {
             loc,
-            holomorphic: Holomorphic::default(),
+            holomorphic: PolyComplexFn::default(),
         }
     }
 
@@ -109,21 +109,21 @@ impl RenderContext {
             }
 
             RctxTransform::ToggleHolo => {
-                let new_holo: Holomorphic;
+                let new_holo: PolyComplexFn;
                 match self.holomorphic {
-                    Holomorphic::Julia(ref j) => {
-                        new_holo = Holomorphic::Mandelbrot(Mandelbrot::from(j));
+                    PolyComplexFn::Julia(ref j) => {
+                        new_holo = PolyComplexFn::Mandelbrot(Mandelbrot::from(j));
                         // When switching from a Julia fractal to the mandelbrot fractal, we need
                         // to change the location specified in the Julia offset. This allows the
                         // user to switch back and forth between the two fractals to observe how
                         // Julia fractals change as the position in the mandelbrot set changes.
                         self.loc.move_to(j.c_offset);
                     }
-                    Holomorphic::Mandelbrot(ref m) => {
+                    PolyComplexFn::Mandelbrot(ref m) => {
                         // When switching from the mandelbrot fractal to a Julia fractal, the
                         // current position generally maps to a similar looking position. The
                         // location can be preserved.
-                        new_holo = Holomorphic::Julia(Julia::from_c(m, self.loc.origin()))
+                        new_holo = PolyComplexFn::Julia(Julia::from_c(m, self.loc.origin()))
                     }
                 }
                 self.holomorphic = new_holo;

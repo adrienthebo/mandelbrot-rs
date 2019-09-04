@@ -195,8 +195,8 @@ impl SineRGB {
     }
 }
 
-/// TODO: Come up with a better name for this trait.
-pub trait Fractal {
+/// A complex polynomial function with a variable exponent.
+pub trait ComplexFn {
     fn escape(&self, c: Complex64, limit: u32) -> Escape;
     fn exp(&self) -> f64;
     fn exp_mut(&mut self) -> &mut f64;
@@ -237,7 +237,7 @@ impl Mandelbrot {
     }
 }
 
-impl Fractal for Mandelbrot {
+impl ComplexFn for Mandelbrot {
     fn escape(&self, c: Complex64, limit: u32) -> Escape {
         self.render(c, limit)
     }
@@ -293,7 +293,7 @@ impl Julia {
     }
 }
 
-impl Fractal for Julia {
+impl ComplexFn for Julia {
     fn escape(&self, c: Complex64, limit: u32) -> Escape {
         self.render(c, limit)
     }
@@ -307,48 +307,47 @@ impl Fractal for Julia {
     }
 }
 
-/// A complex-valued function that is locally differentiable.
+/// A polynomial complex-valued function.
 ///
-/// In more reasonable terms, this is either a Julia set or a Mandelbrot set.
-///
-/// TODO: This is an abuse of the term `Holomorphic`, rethink this.
+/// At present this represents either the Mandelbrot set or a Julia set, and provides a common
+/// interface to generating and manipulating the functions generating these sets.
 #[derive(Clone, Debug, Serialize)]
-pub enum Holomorphic {
+pub enum PolyComplexFn {
     Julia(Julia),
     Mandelbrot(Mandelbrot),
 }
 
-impl Holomorphic {
+impl PolyComplexFn {
     pub fn render(&self, c: Complex64, limit: u32) -> Escape {
         match self {
-            Holomorphic::Julia(j) => j.render(c, limit),
-            Holomorphic::Mandelbrot(m) => m.render(c, limit),
+            PolyComplexFn::Julia(j) => j.render(c, limit),
+            PolyComplexFn::Mandelbrot(m) => m.render(c, limit),
         }
     }
 }
 
-impl Default for Holomorphic {
+impl Default for PolyComplexFn {
     fn default() -> Self {
-        Holomorphic::Mandelbrot(Mandelbrot::default())
+        PolyComplexFn::Mandelbrot(Mandelbrot::default())
     }
 }
 
-impl Fractal for Holomorphic {
+impl ComplexFn for PolyComplexFn {
     fn escape(&self, c: Complex64, limit: u32) -> Escape {
         self.render(c, limit)
     }
 
     fn exp(&self) -> f64 {
         match self {
-            Holomorphic::Mandelbrot(ref m) => m.exp,
-            Holomorphic::Julia(ref j) => j.exp,
+            PolyComplexFn::Mandelbrot(ref m) => m.exp,
+            PolyComplexFn::Julia(ref j) => j.exp,
         }
     }
 
     fn exp_mut(&mut self) -> &mut f64 {
         match self {
-            Holomorphic::Mandelbrot(ref mut m) => &mut m.exp,
-            Holomorphic::Julia(ref mut j) => &mut j.exp,
+            PolyComplexFn::Mandelbrot(ref mut m) => &mut m.exp,
+            PolyComplexFn::Julia(ref mut j) => &mut j.exp,
         }
     }
 }
