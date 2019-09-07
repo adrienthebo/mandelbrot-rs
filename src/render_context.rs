@@ -1,6 +1,6 @@
-//! The set of state needed to render a holomorphic function to an image.
+//! The set of state needed to render a complex polynomial function to an image.
 //!
-//! The rendering context binds together a holomorphic function and location
+//! The rendering context binds together a complex polynomial function and location.
 //!
 //! Remaining work:
 //!
@@ -24,15 +24,15 @@ use std::ops::Index;
 pub struct RenderContext {
     /// The current loc.
     pub loc: Loc,
-    /// The active holomorphic function.
-    pub holomorphic: PolyComplexFn,
+    /// The active complex polynomial function.
+    pub complexfn: PolyComplexFn,
 }
 
 impl Default for RenderContext {
     fn default() -> Self {
         Self {
             loc: Loc::default(),
-            holomorphic: PolyComplexFn::default(),
+            complexfn: PolyComplexFn::default(),
         }
     }
 }
@@ -59,7 +59,7 @@ impl RenderContext {
             .collect::<Vec<Pos>>()
             .par_iter()
             .map(|pos| self.loc.complex_at(bounds, *pos))
-            .map(|c| self.holomorphic.render(c, self.loc.max_iter))
+            .map(|c| self.complexfn.render(c, self.loc.max_iter))
             .collect();
 
         EMatrix::from_vec(
@@ -73,7 +73,7 @@ impl RenderContext {
     pub fn with_loc(loc: Loc) -> Self {
         Self {
             loc,
-            holomorphic: PolyComplexFn::default(),
+            complexfn: PolyComplexFn::default(),
         }
     }
 
@@ -102,17 +102,17 @@ impl RenderContext {
             }
 
             RctxTransform::IncExp => {
-                *self.holomorphic.exp_mut() += Self::EXP_SCALAR;
+                *self.complexfn.exp_mut() += Self::EXP_SCALAR;
             }
             RctxTransform::DecExp => {
-                *self.holomorphic.exp_mut() -= Self::EXP_SCALAR;
+                *self.complexfn.exp_mut() -= Self::EXP_SCALAR;
             }
 
             RctxTransform::ToggleHolo => {
-                let new_holo: PolyComplexFn;
-                match self.holomorphic {
+                let new_fn: PolyComplexFn;
+                match self.complexfn {
                     PolyComplexFn::Julia(ref j) => {
-                        new_holo = PolyComplexFn::Mandelbrot(Mandelbrot::from(j));
+                        new_fn = PolyComplexFn::Mandelbrot(Mandelbrot::from(j));
                         // When switching from a Julia fractal to the mandelbrot fractal, we need
                         // to change the location specified in the Julia offset. This allows the
                         // user to switch back and forth between the two fractals to observe how
@@ -123,10 +123,10 @@ impl RenderContext {
                         // When switching from the mandelbrot fractal to a Julia fractal, the
                         // current position generally maps to a similar looking position. The
                         // location can be preserved.
-                        new_holo = PolyComplexFn::Julia(Julia::from_c(m, self.loc.origin()))
+                        new_fn = PolyComplexFn::Julia(Julia::from_c(m, self.loc.origin()))
                     }
                 }
-                self.holomorphic = new_holo;
+                self.complexfn = new_fn;
             }
         }
     }

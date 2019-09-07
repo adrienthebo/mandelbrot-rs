@@ -121,7 +121,7 @@ fn draw_frame<W: Write>(
     let draw_delta = draw_stop - draw_start;
 
     let labels = vec![
-        format!("holo   = {:?}", &rctx.holomorphic),
+        format!("fn     = {:?}", &rctx.complexfn),
         format!("re     = {:.4e}", rctx.loc.re0),
         format!("im     = {:.4e}", rctx.loc.im0),
         format!("iter   = {}", rctx.loc.max_iter),
@@ -159,7 +159,7 @@ fn screenshot(rctx: &RenderContext, bounds: Bounds) -> Result<(), crate::Error> 
 
     let imgen_app = RenderContext {
         loc: imgen_loc,
-        holomorphic: rctx.holomorphic.clone(),
+        complexfn: rctx.complexfn.clone(),
     };
     let mat = imgen_app.to_ematrix(imgen_bounds);
 

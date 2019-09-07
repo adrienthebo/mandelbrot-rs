@@ -1,4 +1,4 @@
-//! An escape matrix contains an evaluated section of one of the holomorphic functions.
+//! An escape matrix contains an evaluated section of one of the complex polynomial functions.
 
 use crate::Escape;
 
