@@ -159,7 +159,7 @@ fn screenshot(rctx: &RenderContext, bounds: Bounds) -> Result<(), crate::Error> 
 
     let imgen_app = RenderContext {
         loc: imgen_loc,
-        complexfn: rctx.complexfn.clone(),
+        .. rctx.clone()
     };
     let mat = imgen_app.to_ematrix(imgen_bounds);
 
