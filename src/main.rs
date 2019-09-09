@@ -71,35 +71,18 @@ impl From<Key> for AppCmd {
     }
 }
 
-/// Given XY coordinates and computed mandelbrot iteration,
-/// compute the necessary ANSI to move the cursor and paint the cell.
-///
-/// Note: generating strings for every element is highly inefficient; we
-/// should really be appending to a string slice. :shrug:
-fn cell_ansi(pos: Pos, escape: Escape) -> String {
-    // PERF: a coloring object should be passed instead of generated for each value.
-    let sr = SineRGB::default();
-    let rgb = sr.rgb(escape);
-    let color = termion::color::Rgb(rgb.0, rgb.1, rgb.2);
-
-    format!(
-        "{}{}{}",
-        termion::cursor::Goto(pos.x + 1, pos.y + 1),
-        termion::color::Bg(color),
-        " "
-    )
-}
-
-fn ematrix_to_frame(mat: &EMatrix, bounds: Bounds) -> String {
-    let y_iter = 0..bounds.height;
-    let x_iter = 0..bounds.width;
-
-    x_iter
-        .cartesian_product(y_iter)
-        .map(|pt| Pos::from(pt))
-        .zip(mat.iter())
-        .map(move |(pos, escape)| cell_ansi(pos, *escape))
-        .collect()
+fn img_to_ansi(img: &image::RgbImage, bounds: Bounds) -> String {
+    let mut buf = String::new();
+    for yi in 0..bounds.height {
+        for xi in 0..bounds.width {
+            let pos = mandelbrot::Pos { x: xi, y: yi };
+            let pixel = img.get_pixel(xi.into(), yi.into());
+            buf.push_str(String::from(termion::cursor::Goto(pos.x + 1, pos.y + 1)).as_str());
+            buf.push_str(termion::color::Rgb(pixel[0], pixel[1], pixel[2]).bg_string().as_str());
+            buf.push(' ');
+        }
+    }
+    buf
 }
 
 fn draw_frame<W: Write>(
@@ -109,11 +92,12 @@ fn draw_frame<W: Write>(
 ) -> Result<(), crate::Error> {
     let render_start: Instant = Instant::now();
     let mat = rctx.to_ematrix(bounds);
-    let buffer = ematrix_to_frame(&mat, bounds);
+    let img = mat.to_img();
+    let ansi = img_to_ansi(&img, bounds);
     let render_stop: Instant = Instant::now();
 
     let draw_start = Instant::now();
-    write!(screen, "{}", buffer).unwrap();
+    write!(screen, "{}", ansi).unwrap();
     screen.flush()?;
     let draw_stop = Instant::now();
 
