@@ -1,5 +1,4 @@
 extern crate image;
-extern crate itertools;
 extern crate mandelbrot;
 extern crate nalgebra;
 extern crate num;
@@ -8,7 +7,6 @@ extern crate structopt;
 extern crate termion;
 extern crate tui;
 
-use itertools::Itertools;
 use mandelbrot::*;
 use std::fs::File;
 use std::io::{self, Write};
