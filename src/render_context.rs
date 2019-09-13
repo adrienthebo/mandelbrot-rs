@@ -44,7 +44,7 @@ impl RenderContext {
     const TRANSLATE_SCALAR: f64 = 10.;
     const SCALE_SCALAR: f64 = 2.;
     const ITERATIONS_SCALAR: u32 = 25;
-    const EXP_SCALAR: f64 = 0.0125;
+    const EXP_SCALAR: f64 = 0.001;
 
     /// Generate an escape matrix from the current application context.
     ///
