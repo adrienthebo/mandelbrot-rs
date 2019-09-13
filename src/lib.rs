@@ -13,8 +13,8 @@ pub mod ematrix;
 pub use ematrix::*;
 pub mod loc;
 pub use loc::*;
-pub mod render_context;
-pub use render_context::*;
+pub mod rctx;
+pub use rctx::*;
 
 #[derive(Debug)]
 pub struct Error {
