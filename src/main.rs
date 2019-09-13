@@ -119,8 +119,7 @@ fn draw_frame<W: Write>(
             termion::cursor::Goto(1, offset as u16 + 1),
             termion::style::Reset,
             label
-        )
-        .unwrap();
+        )?
     }
 
     screen.flush()?;
