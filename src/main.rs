@@ -139,35 +139,24 @@ fn screenshot(rctx: &RenderContext, bounds: Bounds) -> Result<(), crate::Error> 
     let mut imgen_loc = rctx.loc.scale(bounds, imgen_bounds);
     imgen_loc.comp = (1., 1.,);
 
-    let imgen_app = RenderContext {
+    let imgen_rctx = RenderContext {
         loc: imgen_loc,
         .. rctx.clone()
     };
-    let mat = imgen_app.to_ematrix(imgen_bounds);
 
-    write_loc(&imgen_app)?;
-    write_ematrix(&mat)?;
-    Ok(())
-}
-
-fn write_ematrix(ematrix: &EMatrix) -> io::Result<()> {
     let unix_secs = SystemTime::now()
         .duration_since(SystemTime::UNIX_EPOCH)
+        .map(|duration| u64::from(duration.as_secs()))
         .unwrap();
-    let path = format!("mb-{}.png", unix_secs.as_secs() as u64);
-    let img = ematrix.clone().to_img();
-    img.save(path)
-}
 
-fn write_loc(rctx: &RenderContext) -> std::io::Result<()> {
-    let unix_secs = SystemTime::now()
-        .duration_since(SystemTime::UNIX_EPOCH)
-        .unwrap();
-    let path = format!("mb-{}.json", unix_secs.as_secs() as u64);
+    let json_path = format!("mb-{}.json", unix_secs);
+    File::create(json_path).and_then(|mut f| {
+        let buf = serde_json::to_string(&rctx.loc).unwrap();
+        f.write_all(&buf.as_bytes())
+    })?;
 
-    let mut f = File::create(path)?;
-    let buf = serde_json::to_string(&rctx.loc).unwrap();
-    f.write_all(&buf.as_bytes())
+    let png_path = format!("mb-{}.png", unix_secs);
+    imgen_rctx.to_ematrix(imgen_bounds).to_img().save(png_path).map_err(|e| Error::from(e))
 }
 
 fn run_termion() -> std::result::Result<(), crate::Error> {
