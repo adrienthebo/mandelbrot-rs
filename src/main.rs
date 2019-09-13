@@ -158,6 +158,23 @@ fn screenshot(rctx: &RenderContext, bounds: Bounds) -> Result<(), crate::Error> 
     imgen_rctx.to_ematrix(imgen_bounds).to_img().save(png_path).map_err(|e| Error::from(e))
 }
 
+/// Accept a key input, act on that input, and indicate if the app should keep going.
+fn handle_key(key: Key, rctx:  &mut RenderContext, bounds: &Bounds) -> Option<()> {
+    match AppCmd::from(key) {
+        AppCmd::Transform(t) => {
+            rctx.transform(&t);
+            Some(())
+        }
+        AppCmd::Save => {
+            // TODO: handle errors when generating screenshots.
+            let _ = screenshot(&rctx, *bounds);
+            Some(())
+        }
+        AppCmd::Unhandled(_) => Some(()),
+        AppCmd::Quit => None,
+    }
+}
+
 fn run_termion() -> std::result::Result<(), crate::Error> {
     // Terminal initialization
     let mut stdin = io::stdin();
@@ -174,16 +191,8 @@ fn run_termion() -> std::result::Result<(), crate::Error> {
         match (&mut stdin).keys().next() {
             None | Some(Err(_)) => break, // Stdin was closed or could not be read, shut down.
             Some(Ok(key)) => {
-                match AppCmd::from(key) {
-                    AppCmd::Transform(t) => {
-                        rctx.transform(&t);
-                    }
-                    AppCmd::Save => {
-                        // TODO: handle errors when generating screenshots.
-                        let _ = screenshot(&rctx, bounds);
-                    }
-                    AppCmd::Quit => break,
-                    AppCmd::Unhandled(_) => {}
+                if let None = handle_key(key, &mut rctx, &bounds) {
+                    break;
                 }
             }
         }
@@ -233,16 +242,8 @@ fn run_tui() -> std::result::Result<(), crate::Error> {
                 thread::sleep(Duration::from_millis(100));
             }
             Some(Ok(key)) => {
-                match AppCmd::from(key) {
-                    AppCmd::Transform(t) => {
-                        rctx.transform(&t);
-                    }
-                    AppCmd::Save => {
-                        // TODO: handle errors when generating screenshots.
-                        let _ = screenshot(&rctx, bounds);
-                    }
-                    AppCmd::Quit => break,
-                    AppCmd::Unhandled(_) => {}
+                if let None = handle_key(key, &mut rctx, &bounds) {
+                    break;
                 }
             }
         }
