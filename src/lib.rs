@@ -128,13 +128,22 @@ pub struct SineChannel {
     pub offset: f64,
 }
 
+fn saturate_channel(i: f64) -> u8 {
+    match i {
+        i if i < 0. => 0,
+        i if i > 255. => 255,
+        i => i as u8
+    }
+}
+
 impl SineChannel {
     const COEF: f64 = 127.;
     const FREQ: f64 = 0.05;
     const OFFSET: f64 = 127.;
 
     pub fn compute(&self, i: f64) -> u8 {
-        (self.coef * ((i * self.freq) + self.phase).sin() + self.offset) as u8
+        let input = self.coef * ((i * self.freq) + self.phase).sin() + self.offset;
+        saturate_channel(input)
     }
 
     pub fn sunset() -> (Self, Self, Self) {
