@@ -137,9 +137,9 @@ fn saturate_channel(i: f64) -> u8 {
 }
 
 impl SineChannel {
-    const COEF: f64 = 127.;
-    const FREQ: f64 = 0.05;
-    const OFFSET: f64 = 127.;
+    const COEF: f64 = 140.;
+    const FREQ: f64 = 0.1;
+    const OFFSET: f64 = 112.;
 
     pub fn compute(&self, i: f64) -> u8 {
         let input = self.coef * ((i * self.freq) + self.phase).sin() + self.offset;
@@ -151,19 +151,19 @@ impl SineChannel {
             Self {
                 coef: Self::COEF,
                 freq: Self::FREQ,
-                phase: std::f64::consts::PI * 4. / 3.,
+                phase: std::f64::consts::PI * 9. / 6.,
                 offset: Self::OFFSET,
             },
             Self {
                 coef: Self::COEF,
                 freq: Self::FREQ,
-                phase: std::f64::consts::PI * 5. / 3.,
+                phase: std::f64::consts::PI * 10. / 6.,
                 offset: Self::OFFSET,
             },
             Self {
                 coef: Self::COEF,
                 freq: Self::FREQ,
-                phase: std::f64::consts::PI * 6. / 3.,
+                phase: std::f64::consts::PI * 11. / 6.,
                 offset: Self::OFFSET,
             },
         )
