@@ -90,7 +90,7 @@ fn draw_frame<W: Write>(
 ) -> Result<(), crate::Error> {
     let render_start: Instant = Instant::now();
     let mat = rctx.to_ematrix(bounds);
-    let img = mat.to_img();
+    let img = mat.to_img(&rctx.colorer);
     let ansi = img_to_ansi(&img, bounds);
     let render_stop: Instant = Instant::now();
 
@@ -155,7 +155,7 @@ fn screenshot(rctx: &RenderContext, bounds: Bounds) -> Result<(), crate::Error> 
     })?;
 
     let png_path = format!("mb-{}.png", unix_secs);
-    imgen_rctx.to_ematrix(imgen_bounds).to_img().save(png_path).map_err(|e| Error::from(e))
+    imgen_rctx.to_ematrix(imgen_bounds).to_img(&imgen_rctx.colorer).save(png_path).map_err(|e| Error::from(e))
 }
 
 /// Accept a key input, act on that input, and indicate if the app should keep going.
