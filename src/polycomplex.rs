@@ -48,7 +48,7 @@ impl From<&Julia> for Mandelbrot {
 }
 
 impl Mandelbrot {
-    const ESCAPE_VALUE: f64 = 8.;
+    const ESCAPE_VALUE: f64 = 1000.;
 
     pub fn render(&self, c: Complex64, limit: u32) -> Escape {
         let mut z = Complex64 { re: 0.0, im: 0.0 };
@@ -94,7 +94,7 @@ impl Default for Julia {
 }
 
 impl Julia {
-    const ESCAPE_VALUE: f64 = 8.;
+    const ESCAPE_VALUE: f64 = 1000.;
 
     /// Create a Julia set with a given mandelbrot algorithm and
     /// re/im coordinates.
