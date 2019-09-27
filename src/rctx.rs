@@ -7,7 +7,9 @@
 //! - Add coloring logic
 //! - Add a related type that binds a rendering context with a specific bounds.
 
-use crate::{Bounds, ComplexFn, EMatrix, Escape, Julia, Loc, Mandelbrot, PolyComplexFn, Pos};
+use crate::{
+    ematrix::EMatrix, loc::Loc, Bounds, ComplexFn, Escape, Julia, Mandelbrot, PolyComplexFn, Pos,
+};
 use itertools::Itertools;
 use rayon::prelude::*;
 use serde::Serialize;

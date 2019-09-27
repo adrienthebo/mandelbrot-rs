@@ -7,7 +7,7 @@ extern crate structopt;
 extern crate termion;
 extern crate tui;
 
-use mandelbrot::*;
+use mandelbrot::{loc::Loc, rctx::RctxTransform, rctx::RenderContext, Bounds, Error};
 use std::fs::File;
 use std::io::{self, Write};
 use std::thread;
