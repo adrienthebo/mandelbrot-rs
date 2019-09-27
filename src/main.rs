@@ -9,7 +9,7 @@ extern crate tui;
 
 use mandelbrot::{loc::Loc, rctx::RctxTransform, rctx::RenderContext, Bounds, Error};
 use std::fs::File;
-use std::io::{self, Write};
+use std::io::{self, Read, Write};
 use std::thread;
 use std::time::{Duration, Instant, SystemTime};
 use structopt::StructOpt;
@@ -190,13 +190,12 @@ fn handle_key(key: Key, rctx: &mut RenderContext, bounds: &Bounds) -> Option<()>
     }
 }
 
-fn run_termion() -> std::result::Result<(), crate::Error> {
+fn run_termion(mut rctx: RenderContext) -> std::result::Result<(), crate::Error> {
     // Terminal initialization
     let mut stdin = io::stdin();
     let stdout = io::stdout().into_raw_mode().unwrap();
     let mut screen = AlternateScreen::from(stdout);
 
-    let mut rctx = RenderContext::with_loc(Loc::for_bounds(termion::terminal_size()?.into()));
     write!(screen, "{}", ToAlternateScreen).unwrap();
     write!(screen, "{}", termion::cursor::Hide).unwrap();
 
@@ -220,7 +219,7 @@ fn run_termion() -> std::result::Result<(), crate::Error> {
     Ok(())
 }
 
-fn run_tui() -> std::result::Result<(), crate::Error> {
+fn run_tui(mut rctx: RenderContext) -> std::result::Result<(), crate::Error> {
     // Terminal initialization
     let mut stdin = io::stdin();
     let stdout = io::stdout().into_raw_mode()?;
@@ -230,7 +229,6 @@ fn run_tui() -> std::result::Result<(), crate::Error> {
     let mut terminal = Terminal::new(backend)?;
     terminal.hide_cursor()?;
 
-    let mut rctx = RenderContext::with_loc(Loc::for_bounds(termion::terminal_size()?.into()));
 
     loop {
         let bounds: Bounds = termion::terminal_size()?.into();
@@ -297,12 +295,26 @@ impl std::str::FromStr for TuiType {
 struct AppOptions {
     #[structopt(short = "t", long = "tui")]
     tui_type: Option<TuiType>,
+
+    #[structopt(short = "l", long = "load-file")]
+    load_file: Option<std::path::PathBuf>
 }
 
 fn main() -> std::result::Result<(), crate::Error> {
     let opts = AppOptions::from_args();
+
+    let rctx: RenderContext;
+    if let Some(load_file) = opts.load_file {
+        let mut fh = File::open(load_file)?;
+        let mut content = String::new();
+        fh.read_to_string(&mut content).expect("Unable to read rctx file");
+        rctx = serde_json::from_str(&content).expect("Cannot deserialize rctx");
+    } else {
+        rctx = RenderContext::with_loc(Loc::for_bounds(termion::terminal_size()?.into()));
+    }
+
     match opts.tui_type {
-        None | Some(TuiType::Termion) => run_termion(),
-        Some(TuiType::Tui) => run_tui(),
+        None | Some(TuiType::Termion) => run_termion(rctx),
+        Some(TuiType::Tui) => run_tui(rctx),
     }
 }

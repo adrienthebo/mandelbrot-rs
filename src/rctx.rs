@@ -12,10 +12,10 @@ use crate::{
 };
 use itertools::Itertools;
 use rayon::prelude::*;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::ops::Index;
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct RenderContext {
     /// The current loc.
     pub loc: Loc,

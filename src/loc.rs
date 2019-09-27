@@ -3,10 +3,10 @@
 use crate::Bounds;
 use crate::Pos;
 use num::complex::Complex64;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 /// A location, scalar, and rendering context for a position in the complex plane.
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Loc {
     /// The imaginary axis origin.
     pub im0: f64,

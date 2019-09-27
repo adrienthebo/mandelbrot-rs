@@ -6,7 +6,7 @@ extern crate rayon;
 extern crate serde;
 
 use num::complex::Complex64;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::io;
 
 pub mod ematrix;
@@ -117,7 +117,7 @@ impl From<PositionTuple> for Pos {
 }
 
 /// A single color channel for HSV/RGB conversion.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct SineChannel {
     pub coef: f64,
     pub freq: f64,
@@ -167,7 +167,7 @@ impl SineChannel {
     }
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct SineRGB {
     channels: (SineChannel, SineChannel, SineChannel),
 }
@@ -208,7 +208,7 @@ pub trait ComplexFn {
     fn exp_mut(&mut self) -> &mut f64;
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Mandelbrot {
     pub exp: f64,
 }
@@ -257,7 +257,7 @@ impl ComplexFn for Mandelbrot {
     }
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Julia {
     pub exp: f64,
     pub c_offset: Complex64,
@@ -317,7 +317,7 @@ impl ComplexFn for Julia {
 ///
 /// At present this represents either the Mandelbrot set or a Julia set, and provides a common
 /// interface to generating and manipulating the functions generating these sets.
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum PolyComplexFn {
     Julia(Julia),
     Mandelbrot(Mandelbrot),
