@@ -120,7 +120,7 @@ impl From<PositionTuple> for Pos {
 }
 
 /// A single color channel for HSV/RGB conversion.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct SineChannel {
     pub coef: f64,
     pub freq: f64,
@@ -170,7 +170,7 @@ impl SineChannel {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct SineRGB {
     channels: (SineChannel, SineChannel, SineChannel),
 }

@@ -7,20 +7,13 @@
 //! - Add coloring logic
 //! - Add a related type that binds a rendering context with a specific bounds.
 
-use crate::Bounds;
-use crate::ComplexFn;
-use crate::EMatrix;
-use crate::Escape;
-use crate::Julia;
-use crate::Loc;
-use crate::Mandelbrot;
-use crate::PolyComplexFn;
-use crate::Pos;
+use crate::{Bounds, ComplexFn, EMatrix, Escape, Julia, Loc, Mandelbrot, PolyComplexFn, Pos};
 use itertools::Itertools;
 use rayon::prelude::*;
+use serde::Serialize;
 use std::ops::Index;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize)]
 pub struct RenderContext {
     /// The current loc.
     pub loc: Loc,
