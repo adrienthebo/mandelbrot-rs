@@ -25,9 +25,16 @@ use tui::Terminal;
 
 #[derive(Debug, Clone, Copy)]
 enum AppCmd {
+    /// Transform the rendering context.
     Transform(RctxTransform),
+
+    /// Generate a screenshot based on the current rendering context.
     Save,
+
+    /// Gracefully shut down the app.
     Quit,
+
+    /// An unhandled command.
     Unhandled(Key),
 }
 
