@@ -11,6 +11,21 @@ pub trait ComplexFn {
     fn exp_mut(&mut self) -> &mut f64;
 }
 
+/// Smooth out an escape value with the [generalized-smooth-iteration-count] technique.
+///
+/// [generalized-smooth-iteration-count]: http://www.iquilezles.org/www/articles/mset_smooth/mset_smooth.htm
+///
+/// # Arguments
+///
+/// - `z`: The escaping complex value.
+/// - `iters`: the number of iterations needed to exceed the escape threshold.
+/// - `escape_value`: the normal escape value.
+/// - `exp`: The exponent in use.
+fn smoothed_escape(z: Complex64, iters: u32, escape_value: f64, exp: f64) -> f64 {
+    let fract = (z.norm_sqr().ln() / escape_value.ln()).ln() / exp.ln();
+    f64::from(iters) + fract
+}
+
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Mandelbrot {
     pub exp: f64,
@@ -37,8 +52,7 @@ impl Mandelbrot {
             z = z.powf(self.exp);
             z += c;
             if z.norm_sqr() > Self::ESCAPE_VALUE {
-                let fract = (z.norm_sqr().ln() / Self::ESCAPE_VALUE.ln()).ln() / self.exp.ln();
-                return Some(f64::from(i) - fract);
+                return Some(smoothed_escape(z, i, Self::ESCAPE_VALUE, self.exp));
             }
         }
 
@@ -93,8 +107,7 @@ impl Julia {
             z = z.powf(self.exp);
             z += self.c_offset;
             if z.norm_sqr() > Self::ESCAPE_VALUE {
-                let fract = (z.norm_sqr().ln() / Self::ESCAPE_VALUE.ln()).ln() / self.exp.ln();
-                return Some(f64::from(i) - fract);
+                return Some(smoothed_escape(z, i, Self::ESCAPE_VALUE, self.exp));
             }
         }
 
