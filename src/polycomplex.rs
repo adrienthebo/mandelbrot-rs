@@ -1,4 +1,8 @@
 //! Polynomial complex functions
+//!
+//! # Additional resources:
+//!
+//! - https://www.math.univ-toulouse.fr/~cheritat/wiki-draw/index.php/Mandelbrot_set
 
 use crate::Escape;
 use num::complex::Complex64;
