@@ -76,7 +76,11 @@ fn img_to_ansi(img: &image::RgbImage, bounds: Bounds) -> String {
             let pos = mandelbrot::Pos { x: xi, y: yi };
             let pixel = img.get_pixel(xi.into(), yi.into());
             buf.push_str(String::from(termion::cursor::Goto(pos.x + 1, pos.y + 1)).as_str());
-            buf.push_str(termion::color::Rgb(pixel[0], pixel[1], pixel[2]).bg_string().as_str());
+            buf.push_str(
+                termion::color::Rgb(pixel[0], pixel[1], pixel[2])
+                    .bg_string()
+                    .as_str(),
+            );
             buf.push(' ');
         }
     }
@@ -136,11 +140,11 @@ fn screenshot(rctx: &RenderContext, bounds: Bounds) -> Result<(), crate::Error> 
     };
 
     let mut imgen_loc = rctx.loc.scale(bounds, imgen_bounds);
-    imgen_loc.comp = (1., 1.,);
+    imgen_loc.comp = (1., 1.);
 
     let imgen_rctx = RenderContext {
         loc: imgen_loc,
-        .. rctx.clone()
+        ..rctx.clone()
     };
 
     let unix_secs = SystemTime::now()
@@ -155,11 +159,15 @@ fn screenshot(rctx: &RenderContext, bounds: Bounds) -> Result<(), crate::Error> 
     })?;
 
     let png_path = format!("mb-{}.png", unix_secs);
-    imgen_rctx.to_ematrix(imgen_bounds).to_img(&imgen_rctx.colorer).save(png_path).map_err(|e| Error::from(e))
+    imgen_rctx
+        .to_ematrix(imgen_bounds)
+        .to_img(&imgen_rctx.colorer)
+        .save(png_path)
+        .map_err(|e| Error::from(e))
 }
 
 /// Accept a key input, act on that input, and indicate if the app should keep going.
-fn handle_key(key: Key, rctx:  &mut RenderContext, bounds: &Bounds) -> Option<()> {
+fn handle_key(key: Key, rctx: &mut RenderContext, bounds: &Bounds) -> Option<()> {
     match AppCmd::from(key) {
         AppCmd::Transform(t) => {
             rctx.transform(&t);

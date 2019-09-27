@@ -8,13 +8,13 @@
 //! - Add a related type that binds a rendering context with a specific bounds.
 
 use crate::Bounds;
+use crate::ComplexFn;
 use crate::EMatrix;
 use crate::Escape;
-use crate::ComplexFn;
-use crate::PolyComplexFn;
 use crate::Julia;
 use crate::Loc;
 use crate::Mandelbrot;
+use crate::PolyComplexFn;
 use crate::Pos;
 use itertools::Itertools;
 use rayon::prelude::*;

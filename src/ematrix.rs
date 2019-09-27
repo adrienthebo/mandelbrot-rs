@@ -75,27 +75,31 @@ impl EMatrix {
         let kernel = nalgebra::base::Matrix3::new(1., 2., 1., 2., 16., 2., 1., 2., 1.);
         let divisor = kernel.sum();
 
-        Self(nalgebra::base::DMatrix::from_fn(self.0.nrows(), self.0.ncols(), |yi, xi| {
-            if yi == 0 || xi == 0 || yi == self.0.nrows() - 1 || xi == self.0.ncols() - 1 {
-                self.0.index((yi, xi)).clone()
-            } else {
-                match self.0.index((yi, xi)) {
-                    None => None,
-                    Some(_) => {
-                        let area = self.0.slice((yi - 1, xi - 1), (3, 3));
-                        let acc = area.zip_fold(&kernel, None, |acc, escape, k| {
-                            match (acc, escape) {
-                                (None, None) => None,
-                                (None, Some(iters)) => Some(iters * k),
-                                (Some(acc), None) => Some(acc),
-                                (Some(acc), Some(iters)) => Some(acc + (iters * k))
-                            }
-                        });
-                        acc.map(|iters| iters / divisor)
+        Self(nalgebra::base::DMatrix::from_fn(
+            self.0.nrows(),
+            self.0.ncols(),
+            |yi, xi| {
+                if yi == 0 || xi == 0 || yi == self.0.nrows() - 1 || xi == self.0.ncols() - 1 {
+                    self.0.index((yi, xi)).clone()
+                } else {
+                    match self.0.index((yi, xi)) {
+                        None => None,
+                        Some(_) => {
+                            let area = self.0.slice((yi - 1, xi - 1), (3, 3));
+                            let acc = area.zip_fold(&kernel, None, |acc, escape, k| {
+                                match (acc, escape) {
+                                    (None, None) => None,
+                                    (None, Some(iters)) => Some(iters * k),
+                                    (Some(acc), None) => Some(acc),
+                                    (Some(acc), Some(iters)) => Some(acc + (iters * k)),
+                                }
+                            });
+                            acc.map(|iters| iters / divisor)
+                        }
                     }
                 }
-            }
-        }))
+            },
+        ))
     }
 }
 

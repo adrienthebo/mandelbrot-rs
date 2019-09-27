@@ -132,7 +132,7 @@ fn saturate_channel(i: f64) -> u8 {
     match i {
         i if i < 0. => 0,
         i if i > 255. => 255,
-        i => i as u8
+        i => i as u8,
     }
 }
 
@@ -237,7 +237,7 @@ impl Mandelbrot {
             z = z.powf(self.exp);
             z += c;
             if z.norm_sqr() > Self::ESCAPE_VALUE {
-                let fract = ((z.norm_sqr().ln() / Self::ESCAPE_VALUE.ln())).ln() / self.exp.ln();
+                let fract = (z.norm_sqr().ln() / Self::ESCAPE_VALUE.ln()).ln() / self.exp.ln();
                 return Some(f64::from(i) - fract);
             }
         }
@@ -252,7 +252,7 @@ impl ComplexFn for Mandelbrot {
     }
 
     fn exp(&self) -> f64 {
-       self.exp
+        self.exp
     }
 
     fn exp_mut(&mut self) -> &mut f64 {
@@ -293,7 +293,7 @@ impl Julia {
             z = z.powf(self.exp);
             z += self.c_offset;
             if z.norm_sqr() > Self::ESCAPE_VALUE {
-                let fract = ((z.norm_sqr().ln() / Self::ESCAPE_VALUE.ln())).ln() / self.exp.ln();
+                let fract = (z.norm_sqr().ln() / Self::ESCAPE_VALUE.ln()).ln() / self.exp.ln();
                 return Some(f64::from(i) - fract);
             }
         }
@@ -308,7 +308,7 @@ impl ComplexFn for Julia {
     }
 
     fn exp(&self) -> f64 {
-       self.exp
+        self.exp
     }
 
     fn exp_mut(&mut self) -> &mut f64 {
