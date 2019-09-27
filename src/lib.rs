@@ -10,8 +10,8 @@ use std::io;
 
 pub mod ematrix;
 pub mod loc;
-pub mod rctx;
 pub mod polycomplex;
+pub mod rctx;
 pub use polycomplex::*;
 
 #[derive(Debug)]

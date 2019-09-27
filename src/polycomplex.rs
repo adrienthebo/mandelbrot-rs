@@ -160,4 +160,3 @@ impl ComplexFn for PolyComplexFn {
         }
     }
 }
-

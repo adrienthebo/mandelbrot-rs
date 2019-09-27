@@ -229,7 +229,6 @@ fn run_tui(mut rctx: RenderContext) -> std::result::Result<(), crate::Error> {
     let mut terminal = Terminal::new(backend)?;
     terminal.hide_cursor()?;
 
-
     loop {
         let bounds: Bounds = termion::terminal_size()?.into();
         terminal.draw(|mut f| {
@@ -297,7 +296,7 @@ struct AppOptions {
     tui_type: Option<TuiType>,
 
     #[structopt(short = "l", long = "load-file")]
-    load_file: Option<std::path::PathBuf>
+    load_file: Option<std::path::PathBuf>,
 }
 
 fn main() -> std::result::Result<(), crate::Error> {
@@ -307,7 +306,8 @@ fn main() -> std::result::Result<(), crate::Error> {
     if let Some(load_file) = opts.load_file {
         let mut fh = File::open(load_file)?;
         let mut content = String::new();
-        fh.read_to_string(&mut content).expect("Unable to read rctx file");
+        fh.read_to_string(&mut content)
+            .expect("Unable to read rctx file");
         rctx = serde_json::from_str(&content).expect("Cannot deserialize rctx");
     } else {
         rctx = RenderContext::with_loc(Loc::for_bounds(termion::terminal_size()?.into()));
