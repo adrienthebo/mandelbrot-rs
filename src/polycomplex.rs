@@ -27,7 +27,7 @@ pub trait ComplexFn {
 /// - `exp`: The exponent in use.
 fn smoothed_escape(z: Complex64, iters: u32, escape_value: f64, exp: f64) -> f64 {
     let fract = (z.norm_sqr().ln() / escape_value.ln()).ln() / exp.ln();
-    f64::from(iters) + fract
+    f64::from(iters) - fract
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
