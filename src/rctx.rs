@@ -4,7 +4,6 @@
 //!
 //! Remaining work:
 //!
-//! - Add coloring logic
 //! - Add a related type that binds a rendering context with a specific bounds.
 
 use crate::{
