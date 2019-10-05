@@ -138,6 +138,12 @@ impl RenderContext {
     }
 }
 
+impl<'a> BoundRctx<'a> {
+    pub fn to_ematrix(&self) -> EMatrix {
+        self.rctx.to_ematrix(self.bounds)
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 pub enum RctxTransform {
     TranslateUp,
