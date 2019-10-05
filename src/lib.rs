@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 use std::io;
 
 pub mod ematrix;
+pub mod frontend;
 pub mod loc;
 pub mod polycomplex;
 pub mod rctx;

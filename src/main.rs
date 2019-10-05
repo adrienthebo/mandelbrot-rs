@@ -8,6 +8,7 @@ extern crate termion;
 extern crate tui;
 
 use mandelbrot::{loc::Loc, rctx::RctxTransform, rctx::RenderContext, Bounds, Error};
+use mandelbrot::frontend;
 use std::fs::File;
 use std::io::{self, Read, Write};
 use std::thread;
@@ -100,8 +101,9 @@ fn draw_frame<W: Write>(
     bounds: Bounds,
 ) -> Result<(), crate::Error> {
     let render_start: Instant = Instant::now();
-    let mat = rctx.to_ematrix(bounds);
-    let img = mat.to_img(&rctx.colorer);
+    let img = rctx
+        .to_ematrix(bounds)
+        .to_img(&rctx.colorer);
     let ansi = img_to_ansi(&img, bounds);
     let render_stop: Instant = Instant::now();
 
@@ -313,8 +315,10 @@ fn main() -> std::result::Result<(), crate::Error> {
         rctx = RenderContext::with_loc(Loc::for_bounds(termion::terminal_size()?.into()));
     }
 
-    match opts.tui_type {
-        None | Some(TuiType::Termion) => run_termion(rctx),
-        Some(TuiType::Tui) => run_tui(rctx),
-    }
+    let runtime = match opts.tui_type {
+        None | Some(TuiType::Termion) => run_termion,
+        Some(TuiType::Tui) => run_tui,
+    };
+
+    frontend::run_with_altscreen(move || runtime(rctx))
 }
