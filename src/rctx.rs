@@ -14,6 +14,10 @@ use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::ops::Index;
 
+/// The context for rending a specific point or region within a fractal.
+///
+/// A `RenderContext` gives magnitude, scaling factors, and other properties for the image but does
+/// not bound the precise dimensions.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct RenderContext {
     /// The current loc.
@@ -32,6 +36,12 @@ impl Default for RenderContext {
             colorer: crate::SineRGB::default(),
         }
     }
+}
+
+/// A rendering context with the given bounds.
+pub struct BoundRctx<'a> {
+    pub rctx: &'a RenderContext,
+    pub bounds: Bounds
 }
 
 impl RenderContext {
