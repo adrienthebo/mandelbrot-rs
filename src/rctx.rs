@@ -41,7 +41,7 @@ impl Default for RenderContext {
 /// A rendering context with the given bounds.
 pub struct BoundRctx<'a> {
     pub rctx: &'a RenderContext,
-    pub bounds: Bounds
+    pub bounds: Bounds,
 }
 
 impl RenderContext {
@@ -50,30 +50,11 @@ impl RenderContext {
     const ITERATIONS_SCALAR: u32 = 25;
     const EXP_SCALAR: f64 = 0.001;
 
-    /// Generate an escape matrix from the current application context.
-    ///
-    /// # Performance
-    ///
-    /// This fn is the most expensive operation in the application.
-    ///
-    pub fn to_ematrix(&self, bounds: Bounds) -> EMatrix {
-        let y_iter = 0..bounds.height;
-        let x_iter = 0..bounds.width;
-
-        let escapes: Vec<Escape> = x_iter
-            .cartesian_product(y_iter)
-            .map(|pt| Pos::from(pt))
-            .collect::<Vec<Pos>>()
-            .par_iter()
-            .map(|pos| self.loc.complex_at(bounds, *pos))
-            .map(|c| self.complexfn.render(c, self.loc.max_iter))
-            .collect();
-
-        EMatrix::from_vec(
-            usize::from(bounds.height),
-            usize::from(bounds.width),
-            escapes,
-        )
+    pub fn bind<'a>(&'a self, bounds: Bounds) -> BoundRctx<'a> {
+        BoundRctx {
+            rctx: &self,
+            bounds,
+        }
     }
 
     /// Create a new application context with a pre-defined location.
@@ -140,7 +121,23 @@ impl RenderContext {
 
 impl<'a> BoundRctx<'a> {
     pub fn to_ematrix(&self) -> EMatrix {
-        self.rctx.to_ematrix(self.bounds)
+        let y_iter = 0..self.bounds.height;
+        let x_iter = 0..self.bounds.width;
+
+        let escapes: Vec<Escape> = x_iter
+            .cartesian_product(y_iter)
+            .map(|pt| Pos::from(pt))
+            .collect::<Vec<Pos>>()
+            .par_iter()
+            .map(|pos| self.rctx.loc.complex_at(self.bounds, *pos))
+            .map(|c| self.rctx.complexfn.render(c, self.rctx.loc.max_iter))
+            .collect();
+
+        EMatrix::from_vec(
+            usize::from(self.bounds.height),
+            usize::from(self.bounds.width),
+            escapes,
+        )
     }
 }
 
@@ -167,7 +164,7 @@ impl tui::widgets::Widget for RenderContext {
             height: rect.height,
         };
 
-        let ematrix = RenderContext::to_ematrix(self, bounds);
+        let ematrix = self.bind(bounds).to_ematrix();
 
         for yi in 0..bounds.height {
             for xi in 0..bounds.width {

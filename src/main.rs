@@ -101,9 +101,7 @@ fn draw_frame<W: Write>(
     bounds: Bounds,
 ) -> Result<(), crate::Error> {
     let render_start: Instant = Instant::now();
-    let img = rctx
-        .to_ematrix(bounds)
-        .to_img(&rctx.colorer);
+    let img = rctx.bind(bounds).to_ematrix().to_img(&rctx.colorer);
     let ansi = img_to_ansi(&img, bounds);
     let render_stop: Instant = Instant::now();
 
@@ -169,7 +167,8 @@ fn screenshot(rctx: &RenderContext, bounds: Bounds) -> Result<(), crate::Error> 
 
     let png_path = format!("mb-{}.png", unix_secs);
     imgen_rctx
-        .to_ematrix(imgen_bounds)
+        .bind(imgen_bounds)
+        .to_ematrix()
         .to_img(&imgen_rctx.colorer)
         .save(png_path)
         .map_err(|e| Error::from(e))
