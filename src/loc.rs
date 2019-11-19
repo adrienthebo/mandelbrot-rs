@@ -89,6 +89,7 @@ impl Loc {
     }
 }
 
+/// Generate a default location with scaling set for a terminal.
 impl Default for Loc {
     fn default() -> Self {
         Self {

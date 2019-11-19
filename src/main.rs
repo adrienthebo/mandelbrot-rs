@@ -7,8 +7,8 @@ extern crate structopt;
 extern crate termion;
 extern crate tui;
 
-use mandelbrot::{loc::Loc, rctx::RctxTransform, rctx::RenderContext, Bounds, Error};
 use mandelbrot::frontend;
+use mandelbrot::{loc::Loc, rctx::RctxTransform, rctx::RenderContext, Bounds, Error};
 use std::fs::File;
 use std::io::{self, Read, Write};
 use std::thread;
@@ -77,6 +77,8 @@ impl From<Key> for AppCmd {
     }
 }
 
+/// Convert an RGB image to a series of ANSI escape sequences that set the cursor and paint the
+/// background.
 fn img_to_ansi(img: &image::RgbImage, bounds: Bounds) -> String {
     let mut buf = String::new();
     for yi in 0..bounds.height {
