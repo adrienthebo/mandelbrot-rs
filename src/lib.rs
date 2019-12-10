@@ -40,6 +40,14 @@ impl From<io::Error> for Error {
     }
 }
 
+impl From<serde_json::error::Error> for Error {
+    fn from(err: serde_json::error::Error) -> Self {
+        Self {
+            source: Some(Box::new(err)),
+        }
+    }
+}
+
 /// An Escape represents the status of an evaluated point's escape iteration.
 pub type Escape = Option<f64>;
 

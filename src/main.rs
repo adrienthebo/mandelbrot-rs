@@ -249,16 +249,38 @@ struct AppOptions {
     load_file: Option<std::path::PathBuf>,
 }
 
+#[derive(Debug, StructOpt)]
+enum Subcommand {
+    #[structopt(name = "live")]
+    Live {
+        #[structopt(short = "t", long = "tui")]
+        tui_type: Option<TuiType>,
+
+        #[structopt(short = "l", long = "load-file")]
+        load_file: Option<std::path::PathBuf>,
+    },
+
+    #[structopt(name = "render")]
+    Render {
+        load_file: std::path::PathBuf,
+    }
+}
+
+#[derive(Debug, StructOpt)]
+struct Command {
+    #[structopt(subcommand)]
+    subcommand: Subcommand,
+}
+
 fn main() -> std::result::Result<(), crate::Error> {
     let opts = AppOptions::from_args();
 
     let rctx: RenderContext;
-    if let Some(load_file) = opts.load_file {
-        let mut fh = File::open(load_file)?;
-        let mut content = String::new();
-        fh.read_to_string(&mut content)
-            .expect("Unable to read rctx file");
-        rctx = serde_json::from_str(&content).expect("Cannot deserialize rctx");
+    if let Some(ref load_file) = opts.load_file {
+        let mut buf = String::new();
+        rctx = File::open(&load_file).map_err(|e| e.into())
+            .and_then(|mut fh| fh.read_to_string(&mut buf).map_err(|e| crate::Error::from(e)))
+            .and_then(|_| serde_json::from_str(&buf).map_err(|e| e.into()))?;
     } else {
         rctx = RenderContext::with_loc(Loc::for_bounds(termion::terminal_size()?.into()));
     }
