@@ -8,7 +8,8 @@ extern crate termion;
 extern crate tui;
 
 use mandelbrot::frontend::{self, AppCmd};
-use mandelbrot::{loc::Loc, rctx::RenderContext, Bounds, Error};
+use mandelbrot::{loc::Loc, Bounds, Error};
+use mandelbrot::rctx::{RenderContext, BoundRctx};
 use std::fs::File;
 use std::io::{self, Read, Write};
 use std::thread;
@@ -272,7 +273,18 @@ enum Subcommand {
     },
 
     #[structopt(name = "render")]
-    Render { load_file: std::path::PathBuf },
+    Render {
+        load_file: std::path::PathBuf,
+
+        #[structopt(long = "dest")]
+        dest: Option<std::path::PathBuf>,
+
+        #[structopt(long = "height", default_value = "4000")]
+        height: u16,
+
+        #[structopt(long = "width", default_value = "4000")]
+        width: u16,
+    },
 }
 
 #[derive(Debug, StructOpt)]
@@ -284,7 +296,7 @@ struct Command {
 fn main() -> std::result::Result<(), crate::Error> {
     let cmd = Command::from_args();
 
-    match &cmd.subcommand {
+    match cmd.subcommand {
         Subcommand::Live {
             tui_type,
             load_file,
@@ -303,15 +315,16 @@ fn main() -> std::result::Result<(), crate::Error> {
 
             frontend::run_with_altscreen(move || runtime(rctx))
         }
-        Subcommand::Render { ref load_file } => {
+        Subcommand::Render { load_file, height, width, dest } => {
             let rctx = read_rctx(&load_file)?;
-            screenshot(
-                &rctx,
-                Bounds {
-                    height: 4000,
-                    width: 4000,
-                },
-            )
+            let brctx = rctx.bind(Bounds { height: height, width: width });
+
+            let output_path = dest.unwrap_or(load_file.with_extension("png"));
+            brctx
+                .to_ematrix()
+                .to_img(&rctx.colorer)
+                .save(&output_path)
+                .map_err(|e| Error::from(e))
         }
     }
 }
