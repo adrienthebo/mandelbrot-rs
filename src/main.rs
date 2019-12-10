@@ -111,7 +111,7 @@ fn screenshot(rctx: &RenderContext, bounds: Bounds) -> Result<(), crate::Error> 
 
     let json_path = format!("mb-{}.json", unix_secs);
     File::create(json_path).and_then(|mut f| {
-        let buf = serde_json::to_string(&rctx).unwrap();
+        let buf = serde_json::to_string(&imgen_rctx).unwrap();
         f.write_all(&buf.as_bytes())
     })?;
 
