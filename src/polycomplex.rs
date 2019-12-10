@@ -64,6 +64,22 @@ impl Mandelbrot {
     }
 }
 
+//impl SineDiv {
+//    const ESCAPE_VALUE: f64 = 1000.;
+//
+//    pub fn render(&self, c: Complex64, limit: u32) -> Escape {
+//        let mut z = c.clone();
+//        for i in 0..limit {
+//            z = (z.sin() / z) + c;
+//            if z.norm_sqr() > Self::ESCAPE_VALUE {
+//                return Some(smoothed_escape(z, i, Self::ESCAPE_VALUE, self.exp));
+//            }
+//        }
+//
+//        return None;
+//    }
+//}
+
 impl ComplexFn for Mandelbrot {
     fn escape(&self, c: Complex64, limit: u32) -> Escape {
         self.render(c, limit)
