@@ -239,6 +239,17 @@ impl std::str::FromStr for TuiType {
     }
 }
 
+fn read_rctx(path: &std::path::PathBuf) -> std::result::Result<RenderContext, crate::Error> {
+    let mut buf = String::new();
+    File::open(&path)
+        .map_err(|e| e.into())
+        .and_then(|mut fh| {
+            fh.read_to_string(&mut buf)
+                .map_err(|e| crate::Error::from(e))
+        })
+        .and_then(|_| serde_json::from_str(&buf).map_err(|e| e.into()))
+}
+
 #[derive(Debug, StructOpt)]
 #[structopt(name = "mandelbrot")]
 struct AppOptions {
@@ -261,9 +272,7 @@ enum Subcommand {
     },
 
     #[structopt(name = "render")]
-    Render {
-        load_file: std::path::PathBuf,
-    }
+    Render { load_file: std::path::PathBuf },
 }
 
 #[derive(Debug, StructOpt)]
@@ -273,22 +282,36 @@ struct Command {
 }
 
 fn main() -> std::result::Result<(), crate::Error> {
-    let opts = AppOptions::from_args();
+    let cmd = Command::from_args();
 
-    let rctx: RenderContext;
-    if let Some(ref load_file) = opts.load_file {
-        let mut buf = String::new();
-        rctx = File::open(&load_file).map_err(|e| e.into())
-            .and_then(|mut fh| fh.read_to_string(&mut buf).map_err(|e| crate::Error::from(e)))
-            .and_then(|_| serde_json::from_str(&buf).map_err(|e| e.into()))?;
-    } else {
-        rctx = RenderContext::with_loc(Loc::for_bounds(termion::terminal_size()?.into()));
+    match &cmd.subcommand {
+        Subcommand::Live {
+            tui_type,
+            load_file,
+        } => {
+            let rctx: RenderContext;
+            if let Some(ref path) = load_file {
+                rctx = read_rctx(&path)?;
+            } else {
+                rctx = RenderContext::with_loc(Loc::for_bounds(termion::terminal_size()?.into()));
+            }
+
+            let runtime = match tui_type {
+                None | Some(TuiType::Termion) => run_termion,
+                Some(TuiType::Tui) => run_tui,
+            };
+
+            frontend::run_with_altscreen(move || runtime(rctx))
+        }
+        Subcommand::Render { ref load_file } => {
+            let rctx = read_rctx(&load_file)?;
+            screenshot(
+                &rctx,
+                Bounds {
+                    height: 4000,
+                    width: 4000,
+                },
+            )
+        }
     }
-
-    let runtime = match opts.tui_type {
-        None | Some(TuiType::Termion) => run_termion,
-        Some(TuiType::Tui) => run_tui,
-    };
-
-    frontend::run_with_altscreen(move || runtime(rctx))
 }

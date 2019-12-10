@@ -2,10 +2,10 @@
 //!
 //!
 
-use std::io::Write;
-use termion::raw::IntoRawMode;
 use crate::rctx::RctxTransform;
+use std::io::Write;
 use termion::event::Key;
+use termion::raw::IntoRawMode;
 
 #[derive(Debug, Clone, Copy)]
 pub enum AppCmd {
@@ -59,7 +59,6 @@ impl From<Key> for AppCmd {
         }
     }
 }
-
 
 /// Run a closure in an alternate screen, and disable the alternate screen before handling a
 /// panic.
