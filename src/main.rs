@@ -1,5 +1,3 @@
-extern crate image;
-extern crate mandelbrot;
 extern crate nalgebra;
 extern crate num;
 extern crate serde;
@@ -301,12 +299,13 @@ fn main() -> std::result::Result<(), crate::Error> {
             tui_type,
             load_file,
         } => {
-            let rctx: RenderContext;
+            let mut rctx: RenderContext;
             if let Some(ref path) = load_file {
                 rctx = read_rctx(&path)?;
             } else {
                 rctx = RenderContext::with_loc(Loc::for_bounds(termion::terminal_size()?.into()));
             }
+            rctx.loc.comp = (2., 1.);
 
             let runtime = match tui_type {
                 None | Some(TuiType::Termion) => run_termion,
@@ -316,7 +315,8 @@ fn main() -> std::result::Result<(), crate::Error> {
             frontend::run_with_altscreen(move || runtime(rctx))
         }
         Subcommand::Render { load_file, height, width, dest } => {
-            let rctx = read_rctx(&load_file)?;
+            let mut rctx = read_rctx(&load_file)?;
+            rctx.loc.comp = (1., 1.);
             let brctx = rctx.bind(Bounds { height: height, width: width });
 
             let output_path = dest.unwrap_or(load_file.with_extension("png"));
