@@ -80,20 +80,33 @@ impl EMatrix {
             self.0.ncols(),
             |yi, xi| {
                 if yi == 0 || xi == 0 || yi == self.0.nrows() - 1 || xi == self.0.ncols() - 1 {
+                    // Gaussian blurring along image edges isn't implemented.
                     self.0.index((yi, xi)).clone()
                 } else {
                     match self.0.index((yi, xi)) {
                         None => None,
                         Some(_) => {
                             let area = self.0.slice((yi - 1, xi - 1), (3, 3));
+
+                            // Accumulate the region described by the kernel.
                             let acc = area.zip_fold(&kernel, None, |acc, escape, k| {
                                 match (acc, escape) {
+                                    // Nothing accumulated, no new value at the given position
                                     (None, None) => None,
+                                    // Nothing accumulated, scale value by kernel and accumulate
                                     (None, Some(iters)) => Some(iters * k),
+                                    // Value accumulated, no new value. Return accumulator.
                                     (Some(acc), None) => Some(acc),
+                                    // Value accumulated, value present, Scale value by kernel and
+                                    // add to accumulator.
                                     (Some(acc), Some(iters)) => Some(acc + (iters * k)),
                                 }
                             });
+
+                            // Take the mean of the accumulator with respect to the kernel scaling
+                            // values.
+                            //
+                            // Note - this doesn't correctly consider missing values.
                             acc.map(|iters| iters / divisor)
                         }
                     }
