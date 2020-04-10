@@ -254,9 +254,6 @@ fn read_rctx(path: &std::path::PathBuf) -> std::result::Result<RenderContext, cr
 #[derive(Debug, StructOpt)]
 #[structopt(name = "mandelbrot")]
 struct AppOptions {
-    #[structopt(long = "frontend")]
-    frontend_type: Option<FrontendType>,
-
     #[structopt(long = "spec")]
     spec: Option<std::path::PathBuf>,
 }
