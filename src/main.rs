@@ -7,7 +7,7 @@ extern crate tui;
 
 use mandelbrot::frontend::{self, AppCmd};
 use mandelbrot::{loc::Loc, Bounds, Error};
-use mandelbrot::rctx::{RenderContext, BoundRctx};
+use mandelbrot::rctx::{RenderContext};
 use std::fs::File;
 use std::io::{self, Read, Write};
 use std::thread;
