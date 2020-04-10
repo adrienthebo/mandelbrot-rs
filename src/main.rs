@@ -6,8 +6,8 @@ extern crate termion;
 extern crate tui;
 
 use mandelbrot::frontend::{self, AppCmd};
+use mandelbrot::rctx::RenderContext;
 use mandelbrot::{loc::Loc, Bounds, Error};
-use mandelbrot::rctx::{RenderContext};
 use std::fs::File;
 use std::io::{self, Read, Write};
 use std::thread;
