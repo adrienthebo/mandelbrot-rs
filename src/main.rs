@@ -297,10 +297,7 @@ fn main() -> std::result::Result<(), crate::Error> {
     let cmd = Command::from_args();
 
     match cmd.subcommand {
-        Subcommand::Live {
-            frontend,
-            spec,
-        } => {
+        Subcommand::Live { frontend, spec } => {
             let mut rctx: RenderContext;
             if let Some(ref path) = spec {
                 rctx = read_rctx(&path)?;
@@ -316,10 +313,18 @@ fn main() -> std::result::Result<(), crate::Error> {
 
             frontend::run_with_altscreen(move || runtime(rctx))
         }
-        Subcommand::Render { spec, height, width, dest } => {
+        Subcommand::Render {
+            spec,
+            height,
+            width,
+            dest,
+        } => {
             let mut rctx = read_rctx(&spec)?;
             rctx.loc.comp = (1., 1.);
-            let brctx = rctx.bind(Bounds { height: height, width: width });
+            let brctx = rctx.bind(Bounds {
+                height: height,
+                width: width,
+            });
 
             let output_path = dest.unwrap_or(spec.with_extension("png"));
             brctx

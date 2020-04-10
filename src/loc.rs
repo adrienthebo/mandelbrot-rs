@@ -30,7 +30,7 @@ pub struct Loc {
 pub enum ScaleMethod {
     Min,
     Avg,
-    Max
+    Max,
 }
 
 impl Loc {
@@ -66,7 +66,6 @@ impl Loc {
     ///
     /// This acts to downscale/upscale a location.
     pub fn scale(&self, old: Bounds, new: Bounds, scale_by: ScaleMethod) -> Self {
-
         let scalar: f64;
 
         let re_scalar = f64::from(new.width) / f64::from(old.width);
