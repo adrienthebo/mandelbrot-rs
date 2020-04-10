@@ -290,45 +290,62 @@ struct Command {
     subcommand: Subcommand,
 }
 
+/// Run an interactive mandelbrot explorer
+fn live(
+    frontend_type: Option<FrontendType>,
+    spec: Option<std::path::PathBuf>,
+) -> std::result::Result<(), crate::Error> {
+    let mut rctx: RenderContext;
+    if let Some(ref path) = spec {
+        rctx = read_rctx(&path)?;
+    } else {
+        rctx = RenderContext::with_loc(Loc::for_bounds(termion::terminal_size()?.into()));
+    }
+    rctx.loc.comp = (2., 1.);
+
+    let runtime = match frontend_type {
+        None | Some(FrontendType::Termion) => run_termion,
+        Some(FrontendType::Tui) => run_tui,
+    };
+
+    frontend::run_with_altscreen(move || runtime(rctx))
+}
+
+/// Render a fractal from the given spec/rctx
+fn render(
+    spec: std::path::PathBuf,
+    height: u16,
+    width: u16,
+    dest: Option<std::path::PathBuf>,
+) -> std::result::Result<(), crate::Error> {
+    let mut rctx = read_rctx(&spec)?;
+    rctx.loc.comp = (1., 1.);
+    let brctx = rctx.bind(Bounds {
+        height: height,
+        width: width,
+    });
+
+    let output_path = dest.unwrap_or(spec.with_extension("png"));
+    brctx
+        .to_ematrix()
+        .to_img(&rctx.colorer)
+        .save(&output_path)
+        .map_err(|e| Error::from(e))
+}
+
 fn main() -> std::result::Result<(), crate::Error> {
     let cmd = Command::from_args();
 
     match cmd.subcommand {
-        Subcommand::Live { frontend_type, spec } => {
-            let mut rctx: RenderContext;
-            if let Some(ref path) = spec {
-                rctx = read_rctx(&path)?;
-            } else {
-                rctx = RenderContext::with_loc(Loc::for_bounds(termion::terminal_size()?.into()));
-            }
-            rctx.loc.comp = (2., 1.);
-
-            let runtime = match frontend_type {
-                None | Some(FrontendType::Termion) => run_termion,
-                Some(FrontendType::Tui) => run_tui,
-            };
-
-            frontend::run_with_altscreen(move || runtime(rctx))
-        }
+        Subcommand::Live {
+            frontend_type,
+            spec,
+        } => live(frontend_type, spec),
         Subcommand::Render {
             spec,
             height,
             width,
             dest,
-        } => {
-            let mut rctx = read_rctx(&spec)?;
-            rctx.loc.comp = (1., 1.);
-            let brctx = rctx.bind(Bounds {
-                height: height,
-                width: width,
-            });
-
-            let output_path = dest.unwrap_or(spec.with_extension("png"));
-            brctx
-                .to_ematrix()
-                .to_img(&rctx.colorer)
-                .save(&output_path)
-                .map_err(|e| Error::from(e))
-        }
+        } => render(spec, height, width, dest),
     }
 }
