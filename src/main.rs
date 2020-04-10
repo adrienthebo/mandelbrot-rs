@@ -320,13 +320,13 @@ fn render(
 ) -> std::result::Result<(), crate::Error> {
     let mut rctx = read_rctx(&spec)?;
     rctx.loc.comp = (1., 1.);
-    let brctx = rctx.bind(Bounds {
+    let bound_rctx = rctx.bind(Bounds {
         height: height,
         width: width,
     });
 
     let output_path = dest.unwrap_or(spec.with_extension("png"));
-    brctx
+    bound_rctx
         .to_ematrix()
         .to_img(&rctx.colorer)
         .save(&output_path)
