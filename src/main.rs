@@ -255,8 +255,8 @@ struct AppOptions {
     #[structopt(long = "frontend")]
     frontend: Option<Frontend>,
 
-    #[structopt(short = "l", long = "load-file")]
-    load_file: Option<std::path::PathBuf>,
+    #[structopt(long = "spec")]
+    spec: Option<std::path::PathBuf>,
 }
 
 #[derive(Debug, StructOpt)]
@@ -266,13 +266,13 @@ enum Subcommand {
         #[structopt(long = "frontend")]
         frontend: Option<Frontend>,
 
-        #[structopt(short = "l", long = "load-file")]
-        load_file: Option<std::path::PathBuf>,
+        #[structopt(long = "spec")]
+        spec: Option<std::path::PathBuf>,
     },
 
     #[structopt(name = "render")]
     Render {
-        load_file: std::path::PathBuf,
+        spec: std::path::PathBuf,
 
         #[structopt(long = "dest")]
         dest: Option<std::path::PathBuf>,
@@ -297,10 +297,10 @@ fn main() -> std::result::Result<(), crate::Error> {
     match cmd.subcommand {
         Subcommand::Live {
             frontend,
-            load_file,
+            spec,
         } => {
             let mut rctx: RenderContext;
-            if let Some(ref path) = load_file {
+            if let Some(ref path) = spec {
                 rctx = read_rctx(&path)?;
             } else {
                 rctx = RenderContext::with_loc(Loc::for_bounds(termion::terminal_size()?.into()));
@@ -314,12 +314,12 @@ fn main() -> std::result::Result<(), crate::Error> {
 
             frontend::run_with_altscreen(move || runtime(rctx))
         }
-        Subcommand::Render { load_file, height, width, dest } => {
-            let mut rctx = read_rctx(&load_file)?;
+        Subcommand::Render { spec, height, width, dest } => {
+            let mut rctx = read_rctx(&spec)?;
             rctx.loc.comp = (1., 1.);
             let brctx = rctx.bind(Bounds { height: height, width: width });
 
-            let output_path = dest.unwrap_or(load_file.with_extension("png"));
+            let output_path = dest.unwrap_or(spec.with_extension("png"));
             brctx
                 .to_ematrix()
                 .to_img(&rctx.colorer)
