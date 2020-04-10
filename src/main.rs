@@ -94,7 +94,7 @@ fn screenshot(rctx: &RenderContext, bounds: Bounds) -> Result<(), crate::Error> 
         height: 4000,
     };
 
-    let mut imgen_loc = rctx.loc.scale(bounds, imgen_bounds);
+    let mut imgen_loc = rctx.loc.scale(bounds, imgen_bounds, mandelbrot::loc::ScaleMethod::Min);
     imgen_loc.comp = (1., 1.);
 
     let imgen_rctx = RenderContext {

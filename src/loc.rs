@@ -65,11 +65,24 @@ impl Loc {
     /// location and new location describe approximately equivalent spaces with different resolutions.
     ///
     /// This acts to downscale/upscale a location.
-    pub fn scale(&self, old: Bounds, new: Bounds) -> Self {
+    pub fn scale(&self, old: Bounds, new: Bounds, scale_by: ScaleMethod) -> Self {
+
+        let scalar: f64;
+
         let re_scalar = f64::from(new.width) / f64::from(old.width);
         let im_scalar = f64::from(new.height) / f64::from(old.height);
-        let min = re_scalar.min(im_scalar);
-        let scalar = self.scalar / min;
+
+        match scale_by {
+            ScaleMethod::Min => {
+                scalar = self.scalar / re_scalar.min(im_scalar);
+            }
+            ScaleMethod::Avg => {
+                scalar = self.scalar / ((re_scalar + im_scalar) / 2.);
+            }
+            ScaleMethod::Max => {
+                scalar = self.scalar / re_scalar.max(im_scalar);
+            }
+        }
 
         Self { scalar, ..*self }
     }
