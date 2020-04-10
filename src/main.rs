@@ -212,30 +212,30 @@ fn run_tui(mut rctx: RenderContext) -> std::result::Result<(), crate::Error> {
 }
 
 #[derive(Debug)]
-enum Frontend {
+enum FrontendType {
     Termion,
     Tui,
 }
 
 #[derive(Debug)]
-pub struct FrontendParseError(String);
+pub struct FrontendTypeParseError(String);
 
-impl std::fmt::Display for FrontendParseError {
+impl std::fmt::Display for FrontendTypeParseError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "Cannot parse {} to frontend", self.0)
     }
 }
 
-impl std::error::Error for FrontendParseError {}
+impl std::error::Error for FrontendTypeParseError {}
 
-impl std::str::FromStr for Frontend {
-    type Err = FrontendParseError;
+impl std::str::FromStr for FrontendType {
+    type Err = FrontendTypeParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "tui" => Ok(Frontend::Tui),
-            "termion" => Ok(Frontend::Termion),
-            _ => Err(FrontendParseError(s.to_string())),
+            "tui" => Ok(FrontendType::Tui),
+            "termion" => Ok(FrontendType::Termion),
+            _ => Err(FrontendTypeParseError(s.to_string())),
         }
     }
 }
@@ -255,7 +255,7 @@ fn read_rctx(path: &std::path::PathBuf) -> std::result::Result<RenderContext, cr
 #[structopt(name = "mandelbrot")]
 struct AppOptions {
     #[structopt(long = "frontend")]
-    frontend: Option<Frontend>,
+    frontend_type: Option<FrontendType>,
 
     #[structopt(long = "spec")]
     spec: Option<std::path::PathBuf>,
@@ -266,7 +266,7 @@ enum Subcommand {
     #[structopt(name = "live")]
     Live {
         #[structopt(long = "frontend")]
-        frontend: Option<Frontend>,
+        frontend_type: Option<FrontendType>,
 
         #[structopt(long = "spec")]
         spec: Option<std::path::PathBuf>,
@@ -297,7 +297,7 @@ fn main() -> std::result::Result<(), crate::Error> {
     let cmd = Command::from_args();
 
     match cmd.subcommand {
-        Subcommand::Live { frontend, spec } => {
+        Subcommand::Live { frontend_type, spec } => {
             let mut rctx: RenderContext;
             if let Some(ref path) = spec {
                 rctx = read_rctx(&path)?;
@@ -306,9 +306,9 @@ fn main() -> std::result::Result<(), crate::Error> {
             }
             rctx.loc.comp = (2., 1.);
 
-            let runtime = match frontend {
-                None | Some(Frontend::Termion) => run_termion,
-                Some(Frontend::Tui) => run_tui,
+            let runtime = match frontend_type {
+                None | Some(FrontendType::Termion) => run_termion,
+                Some(FrontendType::Tui) => run_tui,
             };
 
             frontend::run_with_altscreen(move || runtime(rctx))
