@@ -210,30 +210,30 @@ fn run_tui(mut rctx: RenderContext) -> std::result::Result<(), crate::Error> {
 }
 
 #[derive(Debug)]
-enum TuiType {
+enum Frontend {
     Termion,
     Tui,
 }
 
 #[derive(Debug)]
-pub struct TuiTypeParseError(String);
+pub struct FrontendParseError(String);
 
-impl std::fmt::Display for TuiTypeParseError {
+impl std::fmt::Display for FrontendParseError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "Cannot parse {} to tui type", self.0)
+        write!(f, "Cannot parse {} to frontend", self.0)
     }
 }
 
-impl std::error::Error for TuiTypeParseError {}
+impl std::error::Error for FrontendParseError {}
 
-impl std::str::FromStr for TuiType {
-    type Err = TuiTypeParseError;
+impl std::str::FromStr for Frontend {
+    type Err = FrontendParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "tui" => Ok(TuiType::Tui),
-            "termion" => Ok(TuiType::Termion),
-            _ => Err(TuiTypeParseError(s.to_string())),
+            "tui" => Ok(Frontend::Tui),
+            "termion" => Ok(Frontend::Termion),
+            _ => Err(FrontendParseError(s.to_string())),
         }
     }
 }
@@ -252,8 +252,8 @@ fn read_rctx(path: &std::path::PathBuf) -> std::result::Result<RenderContext, cr
 #[derive(Debug, StructOpt)]
 #[structopt(name = "mandelbrot")]
 struct AppOptions {
-    #[structopt(short = "t", long = "tui")]
-    tui_type: Option<TuiType>,
+    #[structopt(long = "frontend")]
+    frontend: Option<Frontend>,
 
     #[structopt(short = "l", long = "load-file")]
     load_file: Option<std::path::PathBuf>,
@@ -263,8 +263,8 @@ struct AppOptions {
 enum Subcommand {
     #[structopt(name = "live")]
     Live {
-        #[structopt(short = "t", long = "tui")]
-        tui_type: Option<TuiType>,
+        #[structopt(long = "frontend")]
+        frontend: Option<Frontend>,
 
         #[structopt(short = "l", long = "load-file")]
         load_file: Option<std::path::PathBuf>,
@@ -296,7 +296,7 @@ fn main() -> std::result::Result<(), crate::Error> {
 
     match cmd.subcommand {
         Subcommand::Live {
-            tui_type,
+            frontend,
             load_file,
         } => {
             let mut rctx: RenderContext;
@@ -307,9 +307,9 @@ fn main() -> std::result::Result<(), crate::Error> {
             }
             rctx.loc.comp = (2., 1.);
 
-            let runtime = match tui_type {
-                None | Some(TuiType::Termion) => run_termion,
-                Some(TuiType::Tui) => run_tui,
+            let runtime = match frontend {
+                None | Some(Frontend::Termion) => run_termion,
+                Some(Frontend::Tui) => run_tui,
             };
 
             frontend::run_with_altscreen(move || runtime(rctx))
