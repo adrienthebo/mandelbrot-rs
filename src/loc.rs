@@ -26,17 +26,20 @@ pub struct Loc {
     pub max_iter: u32,
 }
 
+#[derive(Clone, Debug)]
+pub enum ScaleMethod {
+    Min,
+    Avg,
+    Max
+}
+
 impl Loc {
     /// Create a location scaled appropriately for a given bounds.
     pub fn for_bounds(bounds: Bounds) -> Self {
         let re_steps: f64 = 1.5 / f64::from(bounds.width);
         let im_steps: f64 = 1.5 / f64::from(bounds.height);
 
-        let scalar = if re_steps > im_steps {
-            re_steps
-        } else {
-            im_steps
-        };
+        let scalar = re_steps.max(im_steps);
 
         Self {
             im0: 0.,
@@ -65,11 +68,7 @@ impl Loc {
     pub fn scale(&self, old: Bounds, new: Bounds) -> Self {
         let re_scalar = f64::from(new.width) / f64::from(old.width);
         let im_scalar = f64::from(new.height) / f64::from(old.height);
-        let min = if re_scalar < im_scalar {
-            re_scalar
-        } else {
-            im_scalar
-        };
+        let min = re_scalar.min(im_scalar);
         let scalar = self.scalar / min;
 
         Self { scalar, ..*self }
