@@ -17,10 +17,10 @@ use std::ops::Index;
 
 /// The context for rending a specific point or region within a fractal.
 ///
-/// A `RenderContext` gives magnitude, scaling factors, and other properties for the image but does
+/// An `Rctx` gives magnitude, scaling factors, and other properties for the image but does
 /// not bound the precise dimensions.
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct RenderContext {
+pub struct Rctx {
     /// The current loc.
     pub loc: Loc,
 
@@ -36,7 +36,7 @@ pub struct RenderContext {
     pub comp: (f64, f64),
 }
 
-impl RenderContext {
+impl Rctx {
     const TRANSLATE_SCALAR: f64 = 10.;
     const SCALE_SCALAR: f64 = 2.;
     const ITERATIONS_SCALAR: u32 = 25;
@@ -51,7 +51,7 @@ impl RenderContext {
 
     /// Create a new application context with a pre-defined location.
     pub fn with_loc(loc: Loc) -> Self {
-        let mut rctx = RenderContext::default();
+        let mut rctx = Rctx::default();
         rctx.loc = loc;
         rctx
     }
@@ -129,7 +129,7 @@ impl RenderContext {
     }
 }
 
-impl Default for RenderContext {
+impl Default for Rctx {
     fn default() -> Self {
         Self {
             loc: Loc::default(),
@@ -142,7 +142,7 @@ impl Default for RenderContext {
 
 /// A rendering context with the given bounds.
 pub struct BoundRctx<'a> {
-    pub rctx: &'a RenderContext,
+    pub rctx: &'a Rctx,
     pub bounds: Bounds,
 }
 
@@ -196,7 +196,7 @@ pub enum RctxTransform {
     Reset,
 }
 
-impl tui::widgets::Widget for RenderContext {
+impl tui::widgets::Widget for Rctx {
     fn draw(&mut self, rect: tui::layout::Rect, buf: &mut tui::buffer::Buffer) {
         let bounds = Bounds {
             width: rect.width,

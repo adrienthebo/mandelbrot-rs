@@ -6,7 +6,7 @@ extern crate termion;
 extern crate tui;
 
 use mandelbrot::frontend::{self, AppCmd};
-use mandelbrot::rctx::RenderContext;
+use mandelbrot::rctx::Rctx;
 use mandelbrot::{loc::Loc, Bounds, Error};
 use std::fs::File;
 use std::io::{self, Read, Write};
@@ -43,11 +43,7 @@ fn img_to_ansi(img: &image::RgbImage, bounds: Bounds) -> String {
     buf
 }
 
-fn draw_frame<W: Write>(
-    screen: &mut W,
-    rctx: &RenderContext,
-    bounds: Bounds,
-) -> Result<(), crate::Error> {
+fn draw_frame<W: Write>(screen: &mut W, rctx: &Rctx, bounds: Bounds) -> Result<(), crate::Error> {
     let render_start: Instant = Instant::now();
     let img = rctx.bind(bounds).to_ematrix().to_img(&rctx.colorer);
     let ansi = img_to_ansi(&img, bounds);
@@ -88,7 +84,7 @@ fn draw_frame<W: Write>(
 /// Generate an image and location data for a given render context and bounds.
 ///
 /// TODO: handle write errors without panicking.
-fn screenshot(rctx: &RenderContext, bounds: Bounds) -> Result<(), crate::Error> {
+fn screenshot(rctx: &Rctx, bounds: Bounds) -> Result<(), crate::Error> {
     let imgen_bounds = Bounds {
         width: 4000,
         height: 4000,
@@ -98,7 +94,7 @@ fn screenshot(rctx: &RenderContext, bounds: Bounds) -> Result<(), crate::Error> 
         .loc
         .scale(bounds, imgen_bounds, mandelbrot::loc::ScaleMethod::Min);
 
-    let imgen_rctx = RenderContext {
+    let imgen_rctx = Rctx {
         loc: imgen_loc,
         ..rctx.clone()
     };
@@ -124,7 +120,7 @@ fn screenshot(rctx: &RenderContext, bounds: Bounds) -> Result<(), crate::Error> 
 }
 
 /// Accept a key input, act on that input, and indicate if the app should keep going.
-fn handle_key(key: Key, rctx: &mut RenderContext, bounds: &Bounds) -> Option<()> {
+fn handle_key(key: Key, rctx: &mut Rctx, bounds: &Bounds) -> Option<()> {
     match AppCmd::from(key) {
         AppCmd::Transform(t) => {
             rctx.transform(&t);
@@ -140,7 +136,7 @@ fn handle_key(key: Key, rctx: &mut RenderContext, bounds: &Bounds) -> Option<()>
     }
 }
 
-fn run_termion(mut rctx: RenderContext) -> std::result::Result<(), crate::Error> {
+fn run_termion(mut rctx: Rctx) -> std::result::Result<(), crate::Error> {
     // Terminal initialization
     let mut stdin = io::stdin();
     let stdout = io::stdout().into_raw_mode().unwrap();
@@ -169,7 +165,7 @@ fn run_termion(mut rctx: RenderContext) -> std::result::Result<(), crate::Error>
     Ok(())
 }
 
-fn run_tui(mut rctx: RenderContext) -> std::result::Result<(), crate::Error> {
+fn run_tui(mut rctx: Rctx) -> std::result::Result<(), crate::Error> {
     // Terminal initialization
     let mut stdin = io::stdin();
     let stdout = io::stdout().into_raw_mode()?;
@@ -239,7 +235,7 @@ impl std::str::FromStr for FrontendType {
     }
 }
 
-fn read_rctx(path: &std::path::PathBuf) -> std::result::Result<RenderContext, crate::Error> {
+fn read_rctx(path: &std::path::PathBuf) -> std::result::Result<Rctx, crate::Error> {
     let mut buf = String::new();
     File::open(&path)
         .map_err(|e| e.into())
@@ -294,11 +290,11 @@ fn live(
     frontend_type: Option<FrontendType>,
     spec: Option<std::path::PathBuf>,
 ) -> std::result::Result<(), crate::Error> {
-    let mut rctx: RenderContext;
+    let mut rctx: Rctx;
     if let Some(ref path) = spec {
         rctx = read_rctx(&path)?;
     } else {
-        rctx = RenderContext::with_loc(Loc::for_bounds(termion::terminal_size()?.into()));
+        rctx = Rctx::with_loc(Loc::for_bounds(termion::terminal_size()?.into()));
     }
     rctx.comp = (2.3, 1.0);
 
