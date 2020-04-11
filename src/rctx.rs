@@ -28,22 +28,6 @@ pub struct RenderContext {
     pub colorer: crate::SineRGB,
 }
 
-impl Default for RenderContext {
-    fn default() -> Self {
-        Self {
-            loc: Loc::default(),
-            complexfn: PolyComplexFn::default(),
-            colorer: crate::SineRGB::default(),
-        }
-    }
-}
-
-/// A rendering context with the given bounds.
-pub struct BoundRctx<'a> {
-    pub rctx: &'a RenderContext,
-    pub bounds: Bounds,
-}
-
 impl RenderContext {
     const TRANSLATE_SCALAR: f64 = 10.;
     const SCALE_SCALAR: f64 = 2.;
@@ -117,6 +101,22 @@ impl RenderContext {
             }
         }
     }
+}
+
+impl Default for RenderContext {
+    fn default() -> Self {
+        Self {
+            loc: Loc::default(),
+            complexfn: PolyComplexFn::default(),
+            colorer: crate::SineRGB::default(),
+        }
+    }
+}
+
+/// A rendering context with the given bounds.
+pub struct BoundRctx<'a> {
+    pub rctx: &'a RenderContext,
+    pub bounds: Bounds,
 }
 
 impl<'a> BoundRctx<'a> {
