@@ -143,17 +143,29 @@ impl<'a> BoundRctx<'a> {
 
 #[derive(Debug, Clone, Copy)]
 pub enum RctxTransform {
+    /// Translate the image upward, ie decrement loc.im0
     TranslateUp,
+    /// Translate the image downward, ie increment loc.im0
     TranslateDown,
+    /// Translate the image left, ie decrement loc.re0
     TranslateLeft,
+    /// Translate the image right, ie increment loc.re0
     TranslateRight,
+    /// Increase the scale factor
     ScaleIn,
+    /// Decrease the scale factor
     ScaleOut,
+    /// Increment the escape iteration limit
     IncIterations,
+    /// Decrement the escape iteration limit
     DecIterations,
+    /// Switch to the next function
     ToggleHolo,
+    /// Increment the function exponent
     IncExp,
+    /// Decrement the function exponent
     DecExp,
+    /// Reset the context to defaults
     Reset,
 }
 
