@@ -301,7 +301,7 @@ fn live(
     } else {
         rctx = RenderContext::with_loc(Loc::for_bounds(termion::terminal_size()?.into()));
     }
-    rctx.loc.comp = (2., 1.);
+    rctx.loc.comp = (2.3, 1.0);
 
     let runtime = match frontend_type {
         None | Some(FrontendType::Termion) => run_termion,

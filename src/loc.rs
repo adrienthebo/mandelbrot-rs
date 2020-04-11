@@ -44,7 +44,7 @@ impl Loc {
         Self {
             im0: 0.,
             re0: -0.,
-            comp: (2., 1.),
+            comp: (2.3, 1.),
             scalar: scalar,
             max_iter: 100,
         }
@@ -106,7 +106,7 @@ impl Default for Loc {
         Self {
             im0: 0.0,
             re0: 0.0,
-            comp: (2., 1.),
+            comp: (2.3, 1.),
             scalar: 0.1,
             max_iter: 100,
         }
