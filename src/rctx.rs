@@ -10,6 +10,7 @@ use crate::{
     ematrix::EMatrix, loc::Loc, Bounds, ComplexFn, Escape, Julia, Mandelbrot, PolyComplexFn, Pos,
 };
 use itertools::Itertools;
+use num::complex::Complex64;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::ops::Index;
@@ -22,10 +23,17 @@ use std::ops::Index;
 pub struct RenderContext {
     /// The current loc.
     pub loc: Loc,
+
     /// The active complex polynomial function.
     pub complexfn: PolyComplexFn,
+
     /// The colorer for individual escapes.
     pub colorer: crate::SineRGB,
+
+    /// Dimensional scaling factors in case the canvas is not square.
+    ///
+    /// This compensates for terminal cells having a 2:1 ratio.
+    pub comp: (f64, f64),
 }
 
 impl RenderContext {
@@ -46,6 +54,17 @@ impl RenderContext {
         let mut rctx = RenderContext::default();
         rctx.loc = loc;
         rctx
+    }
+
+    /// Determine the complex value at a given offset of the origin with respect to the provided
+    /// bounds.
+    pub fn complex_at(&self, bounds: Bounds, pos: Pos) -> Complex64 {
+        let offset = pos - bounds.center();
+
+        Complex64 {
+            im: self.comp.0 * f64::from(offset.y) * self.loc.scalar + self.loc.im0,
+            re: self.comp.1 * f64::from(offset.x) * self.loc.scalar + self.loc.re0,
+        }
     }
 
     pub fn transform(&mut self, transform: &RctxTransform) {
@@ -101,6 +120,13 @@ impl RenderContext {
             }
         }
     }
+
+    /// Create a cell rendering context with compensations for terminal cell sizes
+    pub fn for_terminal() -> Self {
+        let mut rctx = Self::default();
+        rctx.comp = (2.3, 1.);
+        rctx
+    }
 }
 
 impl Default for RenderContext {
@@ -109,6 +135,7 @@ impl Default for RenderContext {
             loc: Loc::default(),
             complexfn: PolyComplexFn::default(),
             colorer: crate::SineRGB::default(),
+            comp: (1., 1.),
         }
     }
 }
@@ -129,7 +156,7 @@ impl<'a> BoundRctx<'a> {
             .map(|pt| Pos::from(pt))
             .collect::<Vec<Pos>>()
             .par_iter()
-            .map(|pos| self.rctx.loc.complex_at(self.bounds, *pos))
+            .map(|pos| self.rctx.complex_at(self.bounds, *pos))
             .map(|c| self.rctx.complexfn.render(c, self.rctx.loc.max_iter))
             .collect();
 

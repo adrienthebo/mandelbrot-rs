@@ -14,11 +14,6 @@ pub struct Loc {
     /// The real axis origin.
     pub re0: f64,
 
-    /// Dimensional scaling factors in case the canvas is not square.
-    ///
-    /// This compensates for terminal cells having a 2:1 ratio.
-    pub comp: (f64, f64),
-
     /// Magnification/zoom factor.
     pub scalar: f64,
 
@@ -44,20 +39,8 @@ impl Loc {
         Self {
             im0: 0.,
             re0: -0.,
-            comp: (2.3, 1.),
             scalar: scalar,
             max_iter: 100,
-        }
-    }
-
-    /// Determine the complex value at a given offset of the origin with respect to the provided
-    /// bounds.
-    pub fn complex_at(&self, bounds: Bounds, pos: Pos) -> Complex64 {
-        let offset = pos - bounds.center();
-
-        Complex64 {
-            im: self.comp.0 * f64::from(offset.y) * self.scalar + self.im0,
-            re: self.comp.1 * f64::from(offset.x) * self.scalar + self.re0,
         }
     }
 
@@ -106,7 +89,6 @@ impl Default for Loc {
         Self {
             im0: 0.0,
             re0: 0.0,
-            comp: (2.3, 1.),
             scalar: 0.1,
             max_iter: 100,
         }

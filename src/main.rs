@@ -97,7 +97,6 @@ fn screenshot(rctx: &RenderContext, bounds: Bounds) -> Result<(), crate::Error> 
     let mut imgen_loc = rctx
         .loc
         .scale(bounds, imgen_bounds, mandelbrot::loc::ScaleMethod::Min);
-    imgen_loc.comp = (1., 1.);
 
     let imgen_rctx = RenderContext {
         loc: imgen_loc,
@@ -301,7 +300,7 @@ fn live(
     } else {
         rctx = RenderContext::with_loc(Loc::for_bounds(termion::terminal_size()?.into()));
     }
-    rctx.loc.comp = (2.3, 1.0);
+    rctx.comp = (2.3, 1.0);
 
     let runtime = match frontend_type {
         None | Some(FrontendType::Termion) => run_termion,
@@ -330,7 +329,7 @@ fn render(
     dest: Option<std::path::PathBuf>,
 ) -> std::result::Result<(), crate::Error> {
     let mut rctx = read_rctx(&spec)?;
-    rctx.loc.comp = (1., 1.);
+    rctx.comp = (1., 1.);
     let bound_rctx = rctx.bind(Bounds {
         height: height,
         width: width,
