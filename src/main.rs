@@ -311,6 +311,17 @@ fn live(
     frontend::run_with_altscreen(move || runtime(rctx))
 }
 
+#[allow(unused)]
+fn time_fn<T, U>(desc: &str, f: T) -> U
+where
+    T: FnOnce() -> U,
+{
+    let start = Instant::now();
+    let result: U = f();
+    println!("{} elapsed: {:?}", desc, start.elapsed());
+    result
+}
+
 /// Render a fractal from the given spec/rctx
 fn render(
     spec: std::path::PathBuf,
@@ -326,11 +337,10 @@ fn render(
     });
 
     let output_path = dest.unwrap_or(spec.with_extension("png"));
-    bound_rctx
-        .to_ematrix()
-        .to_img(&rctx.colorer)
-        .save(&output_path)
-        .map_err(|e| Error::from(e))
+
+    let ematrix = time_fn("ematrix", || bound_rctx.to_ematrix());
+    let img = time_fn("coloring", || ematrix.to_img(&rctx.colorer));
+    img.save(&output_path).map_err(|e| Error::from(e))
 }
 
 fn main() -> std::result::Result<(), crate::Error> {
