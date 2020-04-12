@@ -12,6 +12,7 @@ use crate::{
 use itertools::Itertools;
 use num::complex::Complex64;
 use rayon::prelude::*;
+use indicatif::ParallelProgressIterator;
 use serde::{Deserialize, Serialize};
 use std::ops::Index;
 
@@ -156,6 +157,29 @@ impl<'a> BoundRctx<'a> {
             .map(|pt| Pos::from(pt))
             .collect::<Vec<Pos>>()
             .par_iter()
+            .map(|pos| self.rctx.complex_at(self.bounds, *pos))
+            .map(|c| self.rctx.complexfn.render(c, self.rctx.loc.max_iter))
+            .collect();
+
+        EMatrix::from_vec(
+            usize::from(self.bounds.height),
+            usize::from(self.bounds.width),
+            escapes,
+        )
+    }
+
+    pub fn to_ematrix_with_bar(&self, bar: indicatif::ProgressBar) -> EMatrix {
+        let y_iter = 0..self.bounds.height;
+        let x_iter = 0..self.bounds.width;
+
+        bar.set_length(self.bounds.height as u64 * self.bounds.width as u64);
+
+        let escapes: Vec<Escape> = x_iter
+            .cartesian_product(y_iter)
+            .map(|pt| Pos::from(pt))
+            .collect::<Vec<Pos>>()
+            .par_iter()
+            .progress_with(bar)
             .map(|pos| self.rctx.complex_at(self.bounds, *pos))
             .map(|c| self.rctx.complexfn.render(c, self.rctx.loc.max_iter))
             .collect();

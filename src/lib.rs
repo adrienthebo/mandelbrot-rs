@@ -4,6 +4,7 @@ extern crate itertools;
 extern crate num;
 extern crate rayon;
 extern crate serde;
+extern crate indicatif;
 
 use serde::{Deserialize, Serialize};
 use std::io;

@@ -17,6 +17,7 @@ use termion::event::Key;
 use termion::input::{MouseTerminal, TermRead};
 use termion::raw::IntoRawMode;
 use termion::screen::*;
+use indicatif::ProgressBar;
 
 use tui::backend::TermionBackend;
 use tui::layout::{Constraint, Direction, Layout};
@@ -331,8 +332,18 @@ fn render(
         width: width,
     });
 
+    // XXX bad conversion
+    let bar = ProgressBar::new(0);
+
+    bar.set_style(
+        indicatif::ProgressStyle::default_bar()
+        .template("[{elapsed_precise}] {percent}% {wide_bar:cyan/blue} {pos:>7}/{len:7} ({per_sec}) {msg} [eta: {eta_precise}]")
+    );
+    bar.set_draw_delta(10000);
+
     let output_path = dest.unwrap_or(spec.with_extension("png"));
 
+    //let ematrix = time_fn("ematrix", || bound_rctx.to_ematrix_with_bar(bar));
     let ematrix = time_fn("ematrix", || bound_rctx.to_ematrix());
     let img = time_fn("coloring", || ematrix.to_img(&rctx.colorer));
     img.save(&output_path).map_err(|e| Error::from(e))
