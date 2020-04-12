@@ -252,8 +252,8 @@ struct AppOptions {
 
 #[derive(Debug, StructOpt)]
 enum Subcommand {
-    #[structopt(name = "live")]
-    Live {
+    #[structopt(name = "run")]
+    Run {
         #[structopt(long = "frontend")]
         frontend_type: Option<FrontendType>,
 
@@ -283,7 +283,7 @@ struct Command {
 }
 
 /// Run an interactive mandelbrot explorer
-fn live(
+fn run(
     frontend_type: Option<FrontendType>,
     spec: Option<std::path::PathBuf>,
 ) -> std::result::Result<(), crate::Error> {
@@ -349,10 +349,10 @@ fn main() -> std::result::Result<(), crate::Error> {
     let cmd = Command::from_args();
 
     match cmd.subcommand {
-        Subcommand::Live {
+        Subcommand::Run {
             frontend_type,
             spec,
-        } => live(frontend_type, spec),
+        } => run(frontend_type, spec),
         Subcommand::Render {
             spec,
             height,
