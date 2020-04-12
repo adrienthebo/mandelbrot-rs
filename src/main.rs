@@ -91,12 +91,8 @@ fn screenshot(rctx: &Rctx, bounds: Bounds) -> Result<(), crate::Error> {
         height: 4000,
     };
 
-    let mut imgen_loc = rctx
-        .loc
-        .scale(bounds, imgen_bounds, mandelbrot::loc::ScaleMethod::Min);
-
     let imgen_rctx = Rctx {
-        loc: imgen_loc,
+        loc: rctx.loc.scale(bounds, imgen_bounds, mandelbrot::loc::ScaleMethod::Min),
         ..rctx.clone()
     };
 
