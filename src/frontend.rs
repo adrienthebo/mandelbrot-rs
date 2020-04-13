@@ -232,80 +232,90 @@ fn handle_key(key: Key, rctx: &mut Rctx, bounds: &Bounds, run_options: &RunOptio
     }
 }
 
-pub fn run_termion(
-    initial_rctx: Rctx,
-    run_options: RunOptions,
-) -> std::result::Result<(), crate::Error> {
-    // Terminal initialization
-    let mut stdin = io::stdin();
-    let stdout = io::stdout().into_raw_mode().unwrap();
-    let mut screen = termion::screen::AlternateScreen::from(stdout);
-    let mut rctx = initial_rctx;
-
-    write!(screen, "{}", termion::screen::ToAlternateScreen).unwrap();
-    write!(screen, "{}", termion::cursor::Hide).unwrap();
-
-    loop {
-        let bounds: Bounds = termion::terminal_size()?.into();
-        draw_frame(&mut screen, &rctx, bounds)?;
-        match (&mut stdin).keys().next() {
-            None | Some(Err(_)) => break, // Stdin was closed or could not be read, shut down.
-            Some(Ok(key)) => {
-                if let None = handle_key(key, &mut rctx, &bounds, &run_options) {
-                    break;
-                }
-            }
-        }
-    }
-
-    write!(screen, "{}", termion::screen::ToMainScreen).unwrap();
-    write!(screen, "{}", termion::cursor::Show).unwrap();
-    screen.flush()?;
-
-    Ok(())
+pub trait Frontend: Send + Sync + std::panic::UnwindSafe {
+    fn run(&mut self, initial_rctx: Rctx, run_options: RunOptions) -> std::result::Result<(), crate::Error>;
 }
 
-pub fn run_tui(
-    initial_rctx: Rctx,
-    run_options: RunOptions,
-) -> std::result::Result<(), crate::Error> {
-    // Terminal initialization
-    let mut stdin = std::io::stdin();
-    let stdout = std::io::stdout().into_raw_mode()?;
-    let stdout = MouseTerminal::from(stdout);
-    let stdout = termion::screen::AlternateScreen::from(stdout);
-    let backend = TermionBackend::new(stdout);
-    let mut terminal = Terminal::new(backend)?;
-    terminal.hide_cursor()?;
+pub struct Termion {
 
-    let mut rctx = initial_rctx;
-    loop {
-        let bounds: Bounds = termion::terminal_size()?.into();
-        terminal.draw(|mut f| {
-            let chunks = Layout::default()
-                .direction(Direction::Horizontal)
-                .constraints([Constraint::Percentage(20), Constraint::Percentage(80)].as_ref())
-                .split(f.size());
+}
 
-            Block::default()
-                .title("Sidebar")
-                .borders(Borders::ALL)
-                .render(&mut f, chunks[0]);
+impl Frontend for Termion {
+    fn run(&mut self, initial_rctx: Rctx, run_options: RunOptions) -> std::result::Result<(), crate::Error> {
+        // Terminal initialization
+        let mut stdin = io::stdin();
+        let stdout = io::stdout().into_raw_mode().unwrap();
+        let mut screen = termion::screen::AlternateScreen::from(stdout);
+        let mut rctx = initial_rctx;
 
-            rctx.render(&mut f, chunks[1]);
-        })?;
+        write!(screen, "{}", termion::screen::ToAlternateScreen).unwrap();
+        write!(screen, "{}", termion::cursor::Hide).unwrap();
 
-        match (&mut stdin).keys().next() {
-            None | Some(Err(_)) => {
-                std::thread::sleep(std::time::Duration::from_millis(100));
-            }
-            Some(Ok(key)) => {
-                if let None = handle_key(key, &mut rctx, &bounds, &run_options) {
-                    break;
+        loop {
+            let bounds: Bounds = termion::terminal_size()?.into();
+            draw_frame(&mut screen, &rctx, bounds)?;
+            match (&mut stdin).keys().next() {
+                None | Some(Err(_)) => break, // Stdin was closed or could not be read, shut down.
+                Some(Ok(key)) => {
+                    if let None = handle_key(key, &mut rctx, &bounds, &run_options) {
+                        break;
+                    }
                 }
             }
         }
-    }
 
-    Ok(())
+        write!(screen, "{}", termion::screen::ToMainScreen).unwrap();
+        write!(screen, "{}", termion::cursor::Show).unwrap();
+        screen.flush()?;
+
+        Ok(())
+    }
+}
+
+pub struct Tui {
+
+}
+
+impl Frontend for Tui {
+    fn run(&mut self, initial_rctx: Rctx, run_options: RunOptions) -> std::result::Result<(), crate::Error> {
+        // Terminal initialization
+        let mut stdin = std::io::stdin();
+        let stdout = std::io::stdout().into_raw_mode()?;
+        let stdout = MouseTerminal::from(stdout);
+        let stdout = termion::screen::AlternateScreen::from(stdout);
+        let backend = TermionBackend::new(stdout);
+        let mut terminal = Terminal::new(backend)?;
+        terminal.hide_cursor()?;
+
+        let mut rctx = initial_rctx;
+        loop {
+            let bounds: Bounds = termion::terminal_size()?.into();
+            terminal.draw(|mut f| {
+                let chunks = Layout::default()
+                    .direction(Direction::Horizontal)
+                    .constraints([Constraint::Percentage(20), Constraint::Percentage(80)].as_ref())
+                    .split(f.size());
+
+                Block::default()
+                    .title("Sidebar")
+                    .borders(Borders::ALL)
+                    .render(&mut f, chunks[0]);
+
+                rctx.render(&mut f, chunks[1]);
+            })?;
+
+            match (&mut stdin).keys().next() {
+                None | Some(Err(_)) => {
+                    std::thread::sleep(std::time::Duration::from_millis(100));
+                }
+                Some(Ok(key)) => {
+                    if let None = handle_key(key, &mut rctx, &bounds, &run_options) {
+                        break;
+                    }
+                }
+            }
+        }
+
+        Ok(())
+    }
 }

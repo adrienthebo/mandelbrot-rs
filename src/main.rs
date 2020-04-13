@@ -110,12 +110,12 @@ fn run(
     }
     rctx.comp = (2.3, 1.0);
 
-    let runtime = match frontend_type {
-        None | Some(FrontendType::Termion) => mandelbrot::frontend::run_termion,
-        Some(FrontendType::Tui) => mandelbrot::frontend::run_tui,
+    let mut runtime: Box<dyn mandelbrot::frontend::Frontend> = match frontend_type {
+        None | Some(FrontendType::Termion) => Box::new(mandelbrot::frontend::Termion {}),
+        Some(FrontendType::Tui) => Box::new(mandelbrot::frontend::Tui {})
     };
 
-    frontend::run_with_altscreen(move || runtime(rctx, frontend::RunOptions::new(img_dir)))
+    frontend::run_with_altscreen(move || runtime.run(rctx, frontend::RunOptions::new(img_dir)))
 }
 
 #[allow(unused)]
