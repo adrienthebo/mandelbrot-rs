@@ -133,11 +133,18 @@ fn handle_key(key: Key, rctx: &mut Rctx, bounds: &Bounds) -> Option<()> {
     }
 }
 
-fn run_termion(mut rctx: Rctx) -> std::result::Result<(), crate::Error> {
+/// Configuration for `run` subcommand
+#[derive(Debug)]
+struct RunOptions {
+    pub img_dir: Option<std::path::PathBuf>
+}
+
+fn run_termion(initial_rctx: Rctx, run_options: RunOptions) -> std::result::Result<(), crate::Error> {
     // Terminal initialization
     let mut stdin = io::stdin();
     let stdout = io::stdout().into_raw_mode().unwrap();
     let mut screen = AlternateScreen::from(stdout);
+    let mut rctx = initial_rctx;
 
     write!(screen, "{}", ToAlternateScreen).unwrap();
     write!(screen, "{}", termion::cursor::Hide).unwrap();
@@ -162,7 +169,7 @@ fn run_termion(mut rctx: Rctx) -> std::result::Result<(), crate::Error> {
     Ok(())
 }
 
-fn run_tui(mut rctx: Rctx) -> std::result::Result<(), crate::Error> {
+fn run_tui(initial_rctx: Rctx, run_options: RunOptions) -> std::result::Result<(), crate::Error> {
     // Terminal initialization
     let mut stdin = io::stdin();
     let stdout = io::stdout().into_raw_mode()?;
@@ -172,6 +179,7 @@ fn run_tui(mut rctx: Rctx) -> std::result::Result<(), crate::Error> {
     let mut terminal = Terminal::new(backend)?;
     terminal.hide_cursor()?;
 
+    let mut rctx = initial_rctx;
     loop {
         let bounds: Bounds = termion::terminal_size()?.into();
         terminal.draw(|mut f| {
@@ -259,6 +267,9 @@ enum Subcommand {
 
         #[structopt(long = "spec")]
         spec: Option<std::path::PathBuf>,
+
+        #[structopt(long = "img-dir")]
+        img_dir: Option<std::path::PathBuf>,
     },
 
     #[structopt(name = "render")]
@@ -286,6 +297,7 @@ struct Command {
 fn run(
     frontend_type: Option<FrontendType>,
     spec: Option<std::path::PathBuf>,
+    img_dir: Option<std::path::PathBuf>,
 ) -> std::result::Result<(), crate::Error> {
     let mut rctx: Rctx;
     if let Some(ref path) = spec {
@@ -300,7 +312,7 @@ fn run(
         Some(FrontendType::Tui) => run_tui,
     };
 
-    frontend::run_with_altscreen(move || runtime(rctx))
+    frontend::run_with_altscreen(move || runtime(rctx, RunOptions { img_dir }))
 }
 
 #[allow(unused)]
@@ -352,7 +364,8 @@ fn main() -> std::result::Result<(), crate::Error> {
         Subcommand::Run {
             frontend_type,
             spec,
-        } => run(frontend_type, spec),
+            img_dir,
+        } => run(frontend_type, spec, img_dir),
         Subcommand::Render {
             spec,
             height,
