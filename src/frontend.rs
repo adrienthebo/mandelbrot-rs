@@ -72,7 +72,7 @@ impl From<Key> for AppCmd {
             Key::Char('h') => AppCmd::Transform(RctxTransform::DecExp),
 
             // Toggle between the Julia sets and the Mandelbrot sets.
-            Key::Char('x') => AppCmd::Transform(RctxTransform::ToggleHolo),
+            Key::Char('x') => AppCmd::Transform(RctxTransform::SwitchFn),
 
             // Reset the zoom level to default.
             Key::Char('m') => AppCmd::Transform(RctxTransform::Reset),

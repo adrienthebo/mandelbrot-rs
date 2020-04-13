@@ -68,6 +68,7 @@ impl Rctx {
         }
     }
 
+    /// Apply a transform to the rctx.
     pub fn transform(&mut self, transform: &RctxTransform) {
         match *transform {
             RctxTransform::TranslateUp => self.loc.im0 -= self.loc.scalar * Self::TRANSLATE_SCALAR,
@@ -99,7 +100,7 @@ impl Rctx {
                 *self.complexfn.exp_mut() -= Self::EXP_SCALAR;
             }
 
-            RctxTransform::ToggleHolo => {
+            RctxTransform::SwitchFn => {
                 let new_fn: PolyComplexFn;
                 match self.complexfn {
                     PolyComplexFn::Julia(ref j) => {
@@ -211,7 +212,7 @@ pub enum RctxTransform {
     /// Decrement the escape iteration limit
     DecIterations,
     /// Switch to the next function
-    ToggleHolo,
+    SwitchFn,
     /// Increment the function exponent
     IncExp,
     /// Decrement the function exponent
