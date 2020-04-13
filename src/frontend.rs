@@ -182,6 +182,12 @@ pub trait Frontend: Send + Sync + std::panic::UnwindSafe {
         initial_rctx: Rctx,
         run_options: RunOptions,
     ) -> std::result::Result<(), crate::Error>;
+
+    fn draw(
+        &mut self,
+        rctx: &Rctx,
+        bounds: &Bounds,
+    ) -> Result<(), crate::Error>;
 }
 
 pub struct Termion {
@@ -219,6 +225,34 @@ impl Termion {
             }
         }
         buf
+    }
+}
+
+impl Frontend for Termion {
+    fn run(
+        &mut self,
+        initial_rctx: Rctx,
+        run_options: RunOptions,
+    ) -> std::result::Result<(), crate::Error> {
+        let mut rctx = initial_rctx;
+
+        loop {
+            let bounds: Bounds = termion::terminal_size()?.into();
+            self.draw(&rctx, &bounds)?;
+            match (&mut self.stdin).keys().next() {
+                None | Some(Err(_)) => break, // Stdin was closed or could not be read, shut down.
+                Some(Ok(key)) => {
+                    if let None = handle_key(key, &mut rctx, &bounds, &run_options) {
+                        break;
+                    }
+                }
+            }
+        }
+
+        write!(self.screen, "{}{}", termion::screen::ToMainScreen, termion::cursor::Show)?;
+        self.screen.flush()?;
+
+        Ok(())
     }
 
     fn draw(
@@ -264,34 +298,6 @@ impl Termion {
     }
 }
 
-impl Frontend for Termion {
-    fn run(
-        &mut self,
-        initial_rctx: Rctx,
-        run_options: RunOptions,
-    ) -> std::result::Result<(), crate::Error> {
-        let mut rctx = initial_rctx;
-
-        loop {
-            let bounds: Bounds = termion::terminal_size()?.into();
-            self.draw(&rctx, &bounds)?;
-            match (&mut self.stdin).keys().next() {
-                None | Some(Err(_)) => break, // Stdin was closed or could not be read, shut down.
-                Some(Ok(key)) => {
-                    if let None = handle_key(key, &mut rctx, &bounds, &run_options) {
-                        break;
-                    }
-                }
-            }
-        }
-
-        write!(self.screen, "{}{}", termion::screen::ToMainScreen, termion::cursor::Show)?;
-        self.screen.flush()?;
-
-        Ok(())
-    }
-}
-
 pub struct Tui {
     stdin: std::io::Stdin,
     terminal: tui::Terminal<tui::backend::TermionBackend<termion::screen::AlternateScreen<MouseTerminal<termion::raw::RawTerminal<std::io::Stdout>>>>>,
@@ -308,23 +314,6 @@ impl Tui {
         terminal.hide_cursor()?;
 
         Ok(Self { stdin, terminal })
-    }
-
-    fn draw(&mut self, rctx: &Rctx, bounds: &Bounds) -> Result<(), crate::Error> {
-        self.terminal.draw(|mut f| {
-            let chunks = Layout::default()
-                .direction(Direction::Horizontal)
-                .constraints([Constraint::Percentage(20), Constraint::Percentage(80)].as_ref())
-                .split(f.size());
-
-            Block::default()
-                .title("Sidebar")
-                .borders(Borders::ALL)
-                .render(&mut f, chunks[0]);
-
-            // XXX bad clone, shouldn't be necessary
-            rctx.clone().render(&mut f, chunks[1]);
-        }).map_err(|e| e.into())
     }
 }
 
@@ -351,5 +340,25 @@ impl Frontend for Tui {
         }
 
         Ok(())
+    }
+
+    /// Redraw the UI with TUI
+    ///
+    /// TODO: clean up `_bounds` arg
+    fn draw(&mut self, rctx: &Rctx, _bounds: &Bounds) -> Result<(), crate::Error> {
+        self.terminal.draw(|mut f| {
+            let chunks = Layout::default()
+                .direction(Direction::Horizontal)
+                .constraints([Constraint::Percentage(20), Constraint::Percentage(80)].as_ref())
+                .split(f.size());
+
+            Block::default()
+                .title("Sidebar")
+                .borders(Borders::ALL)
+                .render(&mut f, chunks[0]);
+
+            // XXX bad clone, shouldn't be necessary
+            rctx.clone().render(&mut f, chunks[1]);
+        }).map_err(|e| e.into())
     }
 }
