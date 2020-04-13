@@ -146,8 +146,8 @@ pub fn img_to_ansi(img: &image::RgbImage, bounds: Bounds) -> String {
 /// Generate an image and location data for a given render context and bounds.
 ///
 /// TODO: handle write errors without panicking.
-fn screenshot(rctx: &Rctx, bounds: Bounds, img_dir: &std::path::Path) -> Result<(), crate::Error> {
-    let imgen_bounds = Bounds {
+fn screenshot(rctx: &Rctx, old_bounds: &Bounds, img_dir: &std::path::Path) -> Result<(), crate::Error> {
+    let new_bounds = Bounds {
         width: 4000,
         height: 4000,
     };
@@ -155,7 +155,7 @@ fn screenshot(rctx: &Rctx, bounds: Bounds, img_dir: &std::path::Path) -> Result<
     let imgen_rctx = Rctx {
         loc: rctx
             .loc
-            .scale(bounds, imgen_bounds, crate::loc::ScaleMethod::Min),
+            .scale(old_bounds, &new_bounds, crate::loc::ScaleMethod::Min),
         ..rctx.clone()
     };
 
@@ -174,7 +174,7 @@ fn screenshot(rctx: &Rctx, bounds: Bounds, img_dir: &std::path::Path) -> Result<
     let mut png_path = std::path::PathBuf::from(img_dir);
     png_path.push(format!("mb-{}.png", unix_secs));
     imgen_rctx
-        .bind(imgen_bounds)
+        .bind(new_bounds)
         .to_ematrix()
         .to_img(&imgen_rctx.colorer)
         .save(png_path)
@@ -190,7 +190,7 @@ fn handle_key(key: Key, rctx: &mut Rctx, bounds: &Bounds, run_options: &RunOptio
         }
         AppCmd::Save => {
             // TODO: handle errors when generating screenshots.
-            let _ = screenshot(&rctx, *bounds, run_options.img_dir.as_path());
+            let _ = screenshot(&rctx, bounds, run_options.img_dir.as_path());
             Some(())
         }
         AppCmd::Unhandled(_) => Some(()),
