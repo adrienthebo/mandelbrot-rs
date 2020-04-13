@@ -121,28 +121,6 @@ fn reset_terminal() -> std::io::Result<()> {
         .and_then(|mut screen| screen.flush())
 }
 
-/// Convert an RGB image to a series of ANSI escape sequences that set the cursor and paint the
-/// background.
-///
-/// TODO: make this private
-pub fn img_to_ansi(img: &image::RgbImage, bounds: Bounds) -> String {
-    let mut buf = String::new();
-    for yi in 0..bounds.height {
-        for xi in 0..bounds.width {
-            let pos = crate::Pos { x: xi, y: yi };
-            let pixel = img.get_pixel(xi.into(), yi.into());
-            buf.push_str(String::from(termion::cursor::Goto(pos.x + 1, pos.y + 1)).as_str());
-            buf.push_str(
-                termion::color::Rgb(pixel[0], pixel[1], pixel[2])
-                    .bg_string()
-                    .as_str(),
-            );
-            buf.push(' ');
-        }
-    }
-    buf
-}
-
 /// Generate an image and location data for a given render context and bounds.
 ///
 /// TODO: handle write errors without panicking.
@@ -209,7 +187,27 @@ pub trait Frontend: Send + Sync + std::panic::UnwindSafe {
 pub struct Termion {}
 
 impl Termion {
-    pub fn draw_frame<W: Write>(
+    /// Convert an RGB image to a series of ANSI escape sequences that set the cursor and paint the
+    /// background.
+    fn img_to_ansi(&self, img: &image::RgbImage, bounds: Bounds) -> String {
+        let mut buf = String::new();
+        for yi in 0..bounds.height {
+            for xi in 0..bounds.width {
+                let pos = crate::Pos { x: xi, y: yi };
+                let pixel = img.get_pixel(xi.into(), yi.into());
+                buf.push_str(String::from(termion::cursor::Goto(pos.x + 1, pos.y + 1)).as_str());
+                buf.push_str(
+                    termion::color::Rgb(pixel[0], pixel[1], pixel[2])
+                        .bg_string()
+                        .as_str(),
+                );
+                buf.push(' ');
+            }
+        }
+        buf
+    }
+
+    fn draw_frame<W: Write>(
         &self,
         screen: &mut W,
         rctx: &Rctx,
@@ -217,7 +215,7 @@ impl Termion {
     ) -> Result<(), crate::Error> {
         let render_start: Instant = Instant::now();
         let img = rctx.bind(bounds).to_ematrix().to_img(&rctx.colorer);
-        let ansi = img_to_ansi(&img, bounds);
+        let ansi = self.img_to_ansi(&img, bounds);
         let render_stop: Instant = Instant::now();
 
         let draw_start = Instant::now();
