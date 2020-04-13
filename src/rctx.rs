@@ -9,10 +9,10 @@
 use crate::{
     ematrix::EMatrix, loc::Loc, Bounds, ComplexFn, Escape, Julia, Mandelbrot, PolyComplexFn, Pos,
 };
+use indicatif::ParallelProgressIterator;
 use itertools::Itertools;
 use num::complex::Complex64;
 use rayon::prelude::*;
-use indicatif::ParallelProgressIterator;
 use serde::{Deserialize, Serialize};
 use std::ops::Index;
 
