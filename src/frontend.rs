@@ -106,11 +106,19 @@ pub fn run_with_altscreen<F: FnOnce() -> T + std::panic::UnwindSafe, T>(f: F) ->
 }
 
 fn reset_terminal() -> std::io::Result<()> {
-    let stdout = std::io::stdout().into_raw_mode().unwrap();
-    let mut screen = termion::screen::AlternateScreen::from(stdout);
-    write!(screen, "{}", termion::screen::ToMainScreen).unwrap();
-    write!(screen, "{}", termion::cursor::Show).unwrap();
-    screen.flush()
+    std::io::stdout()
+        .into_raw_mode()
+        .map(|stdout| termion::screen::AlternateScreen::from(stdout))
+        .and_then(|mut screen| {
+            write!(
+                screen,
+                "{}{}",
+                termion::screen::ToMainScreen,
+                termion::cursor::Show
+            )?;
+            Ok(screen)
+        })
+        .and_then(|mut screen| screen.flush())
 }
 
 /// Convert an RGB image to a series of ANSI escape sequences that set the cursor and paint the
@@ -133,48 +141,6 @@ pub fn img_to_ansi(img: &image::RgbImage, bounds: Bounds) -> String {
         }
     }
     buf
-}
-
-pub fn draw_frame<W: Write>(
-    screen: &mut W,
-    rctx: &Rctx,
-    bounds: Bounds,
-) -> Result<(), crate::Error> {
-    let render_start: Instant = Instant::now();
-    let img = rctx.bind(bounds).to_ematrix().to_img(&rctx.colorer);
-    let ansi = img_to_ansi(&img, bounds);
-    let render_stop: Instant = Instant::now();
-
-    let draw_start = Instant::now();
-    write!(screen, "{}", ansi).unwrap();
-    screen.flush()?;
-    let draw_stop = Instant::now();
-
-    let render_delta = render_stop - render_start;
-    let draw_delta = draw_stop - draw_start;
-
-    let labels = vec![
-        format!("fn     = {:?}", &rctx.complexfn),
-        format!("re     = {:.4e}", rctx.loc.re0),
-        format!("im     = {:.4e}", rctx.loc.im0),
-        format!("iter   = {}", rctx.loc.max_iter),
-        format!("scalar = {:.4e}", rctx.loc.scalar),
-        format!("render = {}ms", render_delta.as_millis()),
-        format!("draw   = {}ms", draw_delta.as_millis()),
-    ];
-
-    for (offset, label) in labels.iter().enumerate() {
-        write!(
-            screen,
-            "{}{}{}",
-            termion::cursor::Goto(1, offset as u16 + 1),
-            termion::style::Reset,
-            label
-        )?
-    }
-
-    screen.flush()?;
-    Ok(())
 }
 
 /// Generate an image and location data for a given render context and bounds.
@@ -240,6 +206,51 @@ pub struct Termion {
 
 }
 
+impl Termion {
+    pub fn draw_frame<W: Write>(
+        &self,
+        screen: &mut W,
+        rctx: &Rctx,
+        bounds: Bounds,
+    ) -> Result<(), crate::Error> {
+        let render_start: Instant = Instant::now();
+        let img = rctx.bind(bounds).to_ematrix().to_img(&rctx.colorer);
+        let ansi = img_to_ansi(&img, bounds);
+        let render_stop: Instant = Instant::now();
+
+        let draw_start = Instant::now();
+        write!(screen, "{}", ansi).unwrap();
+        screen.flush()?;
+        let draw_stop = Instant::now();
+
+        let render_delta = render_stop - render_start;
+        let draw_delta = draw_stop - draw_start;
+
+        let labels = vec![
+            format!("fn     = {:?}", &rctx.complexfn),
+            format!("re     = {:.4e}", rctx.loc.re0),
+            format!("im     = {:.4e}", rctx.loc.im0),
+            format!("iter   = {}", rctx.loc.max_iter),
+            format!("scalar = {:.4e}", rctx.loc.scalar),
+            format!("render = {}ms", render_delta.as_millis()),
+            format!("draw   = {}ms", draw_delta.as_millis()),
+        ];
+
+        for (offset, label) in labels.iter().enumerate() {
+            write!(
+                screen,
+                "{}{}{}",
+                termion::cursor::Goto(1, offset as u16 + 1),
+                termion::style::Reset,
+                label
+            )?
+            }
+
+        screen.flush()?;
+        Ok(())
+    }
+}
+
 impl Frontend for Termion {
     fn run(&mut self, initial_rctx: Rctx, run_options: RunOptions) -> std::result::Result<(), crate::Error> {
         // Terminal initialization
@@ -253,7 +264,7 @@ impl Frontend for Termion {
 
         loop {
             let bounds: Bounds = termion::terminal_size()?.into();
-            draw_frame(&mut screen, &rctx, bounds)?;
+            self.draw_frame(&mut screen, &rctx, bounds)?;
             match (&mut stdin).keys().next() {
                 None | Some(Err(_)) => break, // Stdin was closed or could not be read, shut down.
                 Some(Ok(key)) => {
