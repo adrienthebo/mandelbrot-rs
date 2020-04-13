@@ -124,10 +124,12 @@ impl Rctx {
     }
 
     /// Create a cell rendering context with compensations for terminal cell sizes
-    pub fn for_terminal() -> Self {
-        let mut rctx = Self::default();
-        rctx.comp = (2.3, 1.);
-        rctx
+    pub fn for_terminal(loc: Option<Loc>) -> Self {
+        Self {
+            loc: loc.unwrap_or(Loc::default()),
+            comp: (2.3, 1.),
+            .. Self::default()
+        }
     }
 }
 

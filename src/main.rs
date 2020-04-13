@@ -109,10 +109,10 @@ fn run(
     let mut rctx: Rctx;
     if let Some(ref path) = spec {
         rctx = read_rctx(&path)?;
+        rctx.comp = (2.3, 1.0);
     } else {
-        rctx = Rctx::with_loc(Loc::for_bounds(termion::terminal_size()?.into()));
+        rctx = Rctx::for_terminal(Some(Loc::for_bounds(termion::terminal_size()?.into())));
     }
-    rctx.comp = (2.3, 1.0);
 
     let mut runtime: Box<dyn mandelbrot::frontend::Frontend> = match frontend_type {
         None | Some(FrontendType::Termion) => Box::new(mandelbrot::frontend::Termion::build()?),
