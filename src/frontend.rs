@@ -292,16 +292,14 @@ impl Frontend for Termion {
     }
 }
 
-pub struct Tui {}
+pub struct Tui {
+    stdin: std::io::Stdin,
+    terminal: tui::Terminal<tui::backend::TermionBackend<termion::screen::AlternateScreen<MouseTerminal<termion::raw::RawTerminal<std::io::Stdout>>>>>,
+}
 
-impl Frontend for Tui {
-    fn run(
-        &mut self,
-        initial_rctx: Rctx,
-        run_options: RunOptions,
-    ) -> std::result::Result<(), crate::Error> {
-        // Terminal initialization
-        let mut stdin = std::io::stdin();
+impl Tui {
+    pub fn build() -> Result<Self, crate::Error> {
+        let stdin = std::io::stdin();
         let stdout = std::io::stdout().into_raw_mode()?;
         let stdout = MouseTerminal::from(stdout);
         let stdout = termion::screen::AlternateScreen::from(stdout);
@@ -309,24 +307,38 @@ impl Frontend for Tui {
         let mut terminal = Terminal::new(backend)?;
         terminal.hide_cursor()?;
 
+        Ok(Self { stdin, terminal })
+    }
+
+    fn draw(&mut self, rctx: &Rctx, bounds: &Bounds) -> Result<(), crate::Error> {
+        self.terminal.draw(|mut f| {
+            let chunks = Layout::default()
+                .direction(Direction::Horizontal)
+                .constraints([Constraint::Percentage(20), Constraint::Percentage(80)].as_ref())
+                .split(f.size());
+
+            Block::default()
+                .title("Sidebar")
+                .borders(Borders::ALL)
+                .render(&mut f, chunks[0]);
+
+            // XXX bad clone, shouldn't be necessary
+            rctx.clone().render(&mut f, chunks[1]);
+        }).map_err(|e| e.into())
+    }
+}
+
+impl Frontend for Tui {
+    fn run(
+        &mut self,
+        initial_rctx: Rctx,
+        run_options: RunOptions,
+    ) -> std::result::Result<(), crate::Error> {
         let mut rctx = initial_rctx;
         loop {
             let bounds: Bounds = termion::terminal_size()?.into();
-            terminal.draw(|mut f| {
-                let chunks = Layout::default()
-                    .direction(Direction::Horizontal)
-                    .constraints([Constraint::Percentage(20), Constraint::Percentage(80)].as_ref())
-                    .split(f.size());
-
-                Block::default()
-                    .title("Sidebar")
-                    .borders(Borders::ALL)
-                    .render(&mut f, chunks[0]);
-
-                rctx.render(&mut f, chunks[1]);
-            })?;
-
-            match (&mut stdin).keys().next() {
+            self.draw(&rctx, &bounds)?;
+            match (&mut self.stdin).keys().next() {
                 None | Some(Err(_)) => {
                     std::thread::sleep(std::time::Duration::from_millis(100));
                 }

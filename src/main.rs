@@ -112,7 +112,7 @@ fn run(
 
     let mut runtime: Box<dyn mandelbrot::frontend::Frontend> = match frontend_type {
         None | Some(FrontendType::Termion) => Box::new(mandelbrot::frontend::Termion::build()?),
-        Some(FrontendType::Tui) => Box::new(mandelbrot::frontend::Tui {})
+        Some(FrontendType::Tui) => Box::new(mandelbrot::frontend::Tui::build()?)
     };
 
     frontend::run_with_altscreen(move || runtime.run(rctx, frontend::RunOptions::new(img_dir)))
