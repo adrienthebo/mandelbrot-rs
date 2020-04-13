@@ -203,7 +203,7 @@ impl Termion {
 
     /// Convert an RGB image to a series of ANSI escape sequences that set the cursor and paint the
     /// background.
-    fn img_to_ansi(&self, img: &image::RgbImage, bounds: Bounds) -> String {
+    fn img_to_ansi(&self, img: &image::RgbImage, bounds: &Bounds) -> String {
         let mut buf = String::new();
         for yi in 0..bounds.height {
             for xi in 0..bounds.width {
@@ -221,13 +221,13 @@ impl Termion {
         buf
     }
 
-    fn draw_frame(
+    fn draw(
         &mut self,
         rctx: &Rctx,
-        bounds: Bounds,
+        bounds: &Bounds,
     ) -> Result<(), crate::Error> {
         let render_start: Instant = Instant::now();
-        let img = rctx.bind(bounds).to_ematrix().to_img(&rctx.colorer);
+        let img = rctx.bind(*bounds).to_ematrix().to_img(&rctx.colorer);
         let ansi = self.img_to_ansi(&img, bounds);
         let render_stop: Instant = Instant::now();
 
@@ -274,7 +274,7 @@ impl Frontend for Termion {
 
         loop {
             let bounds: Bounds = termion::terminal_size()?.into();
-            self.draw_frame(&rctx, bounds)?;
+            self.draw(&rctx, &bounds)?;
             match (&mut self.stdin).keys().next() {
                 None | Some(Err(_)) => break, // Stdin was closed or could not be read, shut down.
                 Some(Ok(key)) => {
