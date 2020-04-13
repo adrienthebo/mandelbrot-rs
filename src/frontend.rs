@@ -353,19 +353,19 @@ impl Frontend for Tui {
     /// TODO: clean up `_bounds` arg
     fn draw(&mut self, rctx: &Rctx, _bounds: &Bounds) -> Result<(), crate::Error> {
         self.terminal
-            .draw(|mut f| {
-                let chunks = Layout::default()
+            .draw(|mut frame| {
+                let sections = Layout::default()
                     .direction(Direction::Horizontal)
                     .constraints([Constraint::Percentage(20), Constraint::Percentage(80)].as_ref())
-                    .split(f.size());
+                    .split(frame.size());
 
                 Block::default()
                     .title("Sidebar")
                     .borders(Borders::ALL)
-                    .render(&mut f, chunks[0]);
+                    .render(&mut frame, sections[0]);
 
                 // XXX bad clone, shouldn't be necessary
-                rctx.clone().render(&mut f, chunks[1]);
+                rctx.clone().render(&mut frame, sections[1]);
             })
             .map_err(|e| e.into())
     }
