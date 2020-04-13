@@ -115,7 +115,7 @@ fn run(
         Some(FrontendType::Tui) => mandelbrot::frontend::run_tui,
     };
 
-    frontend::run_with_altscreen(move || runtime(rctx, frontend::RunOptions { img_dir }))
+    frontend::run_with_altscreen(move || runtime(rctx, frontend::RunOptions::new(img_dir)))
 }
 
 #[allow(unused)]

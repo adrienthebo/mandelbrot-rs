@@ -5,7 +5,7 @@
 use crate::rctx::{Rctx, RctxTransform};
 use crate::Bounds;
 use std::fs::File;
-use std::io::{self, Read, Write};
+use std::io::{self, Write};
 use std::time::{Instant, SystemTime};
 use termion::event::Key;
 use termion::input::{MouseTerminal, TermRead};
@@ -35,7 +35,15 @@ pub enum AppCmd {
 /// TODO: move to a more reasonable place
 #[derive(Debug)]
 pub struct RunOptions {
-    pub img_dir: Option<std::path::PathBuf>,
+    pub img_dir: std::path::PathBuf,
+}
+
+impl RunOptions {
+    pub fn new(img_dir: Option<std::path::PathBuf>) -> Self {
+        Self {
+            img_dir: img_dir.unwrap_or(std::path::PathBuf::from("."))
+        }
+    }
 }
 
 impl From<Key> for AppCmd {
@@ -172,7 +180,7 @@ pub fn draw_frame<W: Write>(
 /// Generate an image and location data for a given render context and bounds.
 ///
 /// TODO: handle write errors without panicking.
-fn screenshot(rctx: &Rctx, bounds: Bounds) -> Result<(), crate::Error> {
+fn screenshot(rctx: &Rctx, bounds: Bounds, img_dir: &std::path::Path) -> Result<(), crate::Error> {
     let imgen_bounds = Bounds {
         width: 4000,
         height: 4000,
@@ -190,13 +198,15 @@ fn screenshot(rctx: &Rctx, bounds: Bounds) -> Result<(), crate::Error> {
         .map(|duration| u64::from(duration.as_secs()))
         .unwrap();
 
-    let json_path = format!("mb-{}.json", unix_secs);
+    let mut json_path = std::path::PathBuf::from(img_dir);
+    json_path.push(format!("mb-{}.json", unix_secs));
     File::create(json_path).and_then(|mut f| {
         let buf = serde_json::to_string(&imgen_rctx).unwrap();
         f.write_all(&buf.as_bytes())
     })?;
 
-    let png_path = format!("mb-{}.png", unix_secs);
+    let mut png_path = std::path::PathBuf::from(img_dir);
+    png_path.push(format!("mb-{}.png", unix_secs));
     imgen_rctx
         .bind(imgen_bounds)
         .to_ematrix()
@@ -206,7 +216,7 @@ fn screenshot(rctx: &Rctx, bounds: Bounds) -> Result<(), crate::Error> {
 }
 
 /// Accept a key input, act on that input, and indicate if the app should keep going.
-fn handle_key(key: Key, rctx: &mut Rctx, bounds: &Bounds) -> Option<()> {
+fn handle_key(key: Key, rctx: &mut Rctx, bounds: &Bounds, run_options: &RunOptions) -> Option<()> {
     match AppCmd::from(key) {
         AppCmd::Transform(t) => {
             rctx.transform(&t);
@@ -214,7 +224,7 @@ fn handle_key(key: Key, rctx: &mut Rctx, bounds: &Bounds) -> Option<()> {
         }
         AppCmd::Save => {
             // TODO: handle errors when generating screenshots.
-            let _ = screenshot(&rctx, *bounds);
+            let _ = screenshot(&rctx, *bounds, run_options.img_dir.as_path());
             Some(())
         }
         AppCmd::Unhandled(_) => Some(()),
@@ -241,7 +251,7 @@ pub fn run_termion(
         match (&mut stdin).keys().next() {
             None | Some(Err(_)) => break, // Stdin was closed or could not be read, shut down.
             Some(Ok(key)) => {
-                if let None = handle_key(key, &mut rctx, &bounds) {
+                if let None = handle_key(key, &mut rctx, &bounds, &run_options) {
                     break;
                 }
             }
@@ -290,7 +300,7 @@ pub fn run_tui(
                 std::thread::sleep(std::time::Duration::from_millis(100));
             }
             Some(Ok(key)) => {
-                if let None = handle_key(key, &mut rctx, &bounds) {
+                if let None = handle_key(key, &mut rctx, &bounds, &run_options) {
                     break;
                 }
             }
