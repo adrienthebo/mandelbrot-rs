@@ -41,7 +41,7 @@ pub struct RunOptions {
 impl RunOptions {
     pub fn new(img_dir: Option<std::path::PathBuf>) -> Self {
         Self {
-            img_dir: img_dir.unwrap_or(std::path::PathBuf::from("."))
+            img_dir: img_dir.unwrap_or(std::path::PathBuf::from(".")),
         }
     }
 }
@@ -199,12 +199,14 @@ fn handle_key(key: Key, rctx: &mut Rctx, bounds: &Bounds, run_options: &RunOptio
 }
 
 pub trait Frontend: Send + Sync + std::panic::UnwindSafe {
-    fn run(&mut self, initial_rctx: Rctx, run_options: RunOptions) -> std::result::Result<(), crate::Error>;
+    fn run(
+        &mut self,
+        initial_rctx: Rctx,
+        run_options: RunOptions,
+    ) -> std::result::Result<(), crate::Error>;
 }
 
-pub struct Termion {
-
-}
+pub struct Termion {}
 
 impl Termion {
     pub fn draw_frame<W: Write>(
@@ -244,7 +246,7 @@ impl Termion {
                 termion::style::Reset,
                 label
             )?
-            }
+        }
 
         screen.flush()?;
         Ok(())
@@ -252,7 +254,11 @@ impl Termion {
 }
 
 impl Frontend for Termion {
-    fn run(&mut self, initial_rctx: Rctx, run_options: RunOptions) -> std::result::Result<(), crate::Error> {
+    fn run(
+        &mut self,
+        initial_rctx: Rctx,
+        run_options: RunOptions,
+    ) -> std::result::Result<(), crate::Error> {
         // Terminal initialization
         let mut stdin = io::stdin();
         let stdout = io::stdout().into_raw_mode().unwrap();
@@ -283,12 +289,14 @@ impl Frontend for Termion {
     }
 }
 
-pub struct Tui {
-
-}
+pub struct Tui {}
 
 impl Frontend for Tui {
-    fn run(&mut self, initial_rctx: Rctx, run_options: RunOptions) -> std::result::Result<(), crate::Error> {
+    fn run(
+        &mut self,
+        initial_rctx: Rctx,
+        run_options: RunOptions,
+    ) -> std::result::Result<(), crate::Error> {
         // Terminal initialization
         let mut stdin = std::io::stdin();
         let stdout = std::io::stdout().into_raw_mode()?;
