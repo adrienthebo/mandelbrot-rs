@@ -166,7 +166,8 @@ fn screenshot(
 
 /// Accept a key input, act on that input, and indicate if the app should keep going.
 fn handle_key(key: Key, rctx: &mut Rctx, bounds: &Bounds, run_options: &RunOptions) -> Option<()> {
-    match AppCmd::from(key) {
+    let cmd = AppCmd::from(key);
+    match &cmd {
         AppCmd::Transform(t) => {
             rctx.transform(&t);
             Some(())

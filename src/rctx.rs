@@ -158,7 +158,7 @@ impl<'a> BoundRctx<'a> {
             .collect::<Vec<Pos>>()
             .par_iter()
             .map(|pos| self.rctx.complex_at(self.bounds, *pos))
-            .map(|c| self.rctx.complexfn.render(c, self.rctx.loc.max_iter))
+            .map(|c| self.rctx.complexfn.escape(c, self.rctx.loc.max_iter))
             .collect();
 
         EMatrix::from_vec(
@@ -181,7 +181,7 @@ impl<'a> BoundRctx<'a> {
             .par_iter()
             .progress_with(bar)
             .map(|pos| self.rctx.complex_at(self.bounds, *pos))
-            .map(|c| self.rctx.complexfn.render(c, self.rctx.loc.max_iter))
+            .map(|c| self.rctx.complexfn.escape(c, self.rctx.loc.max_iter))
             .collect();
 
         EMatrix::from_vec(

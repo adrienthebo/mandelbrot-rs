@@ -48,9 +48,10 @@ impl From<&Julia> for Mandelbrot {
 }
 
 impl Mandelbrot {
+    /// The threshold at which a point is considered escaped
     const ESCAPE_VALUE: f64 = 1000.;
 
-    pub fn render(&self, c: Complex64, limit: u32) -> Escape {
+    pub fn escape(&self, c: Complex64, limit: u32) -> Escape {
         let mut z = Complex64 { re: 0.0, im: 0.0 };
         for i in 0..limit {
             z = z.powf(self.exp);
@@ -82,7 +83,7 @@ impl Mandelbrot {
 
 impl ComplexFn for Mandelbrot {
     fn escape(&self, c: Complex64, limit: u32) -> Escape {
-        self.render(c, limit)
+        self.escape(c, limit)
     }
 
     fn exp(&self) -> f64 {
@@ -110,6 +111,7 @@ impl Default for Julia {
 }
 
 impl Julia {
+    /// The threshold at which a point is considered escaped
     const ESCAPE_VALUE: f64 = 1000.;
 
     /// Create a Julia set with a given mandelbrot algorithm and
@@ -121,7 +123,7 @@ impl Julia {
         }
     }
 
-    fn render(&self, c: Complex64, limit: u32) -> Escape {
+    fn escape(&self, c: Complex64, limit: u32) -> Escape {
         let mut z = c.clone();
         for i in 0..limit {
             z = z.powf(self.exp);
@@ -137,7 +139,7 @@ impl Julia {
 
 impl ComplexFn for Julia {
     fn escape(&self, c: Complex64, limit: u32) -> Escape {
-        self.render(c, limit)
+        self.escape(c, limit)
     }
 
     fn exp(&self) -> f64 {
@@ -160,10 +162,10 @@ pub enum PolyComplexFn {
 }
 
 impl PolyComplexFn {
-    pub fn render(&self, c: Complex64, limit: u32) -> Escape {
+    pub fn escape(&self, c: Complex64, limit: u32) -> Escape {
         match self {
-            PolyComplexFn::Julia(j) => j.render(c, limit),
-            PolyComplexFn::Mandelbrot(m) => m.render(c, limit),
+            PolyComplexFn::Julia(j) => j.escape(c, limit),
+            PolyComplexFn::Mandelbrot(m) => m.escape(c, limit),
         }
     }
 }
@@ -176,7 +178,7 @@ impl Default for PolyComplexFn {
 
 impl ComplexFn for PolyComplexFn {
     fn escape(&self, c: Complex64, limit: u32) -> Escape {
-        self.render(c, limit)
+        self.escape(c, limit)
     }
 
     fn exp(&self) -> f64 {
