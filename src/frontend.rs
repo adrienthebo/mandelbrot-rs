@@ -3,6 +3,7 @@
 //!
 
 use crate::rctx::{Rctx, RctxTransform};
+use crate::polycomplex::ComplexFn;
 use crate::Bounds;
 use std::fs::File;
 use std::io::{self, Write};
@@ -274,7 +275,7 @@ impl Frontend for Termion {
         let draw_delta = draw_stop - draw_start;
 
         let labels = vec![
-            format!("fn     = {:?}", &rctx.complexfn),
+            format!("exp    = {:.4e}", &rctx.complexfn.exp()),
             format!("re     = {:.4e}", rctx.loc.re0),
             format!("im     = {:.4e}", rctx.loc.im0),
             format!("iter   = {}", rctx.loc.max_iter),
