@@ -182,7 +182,20 @@ pub trait Frontend: Send + Sync + std::panic::UnwindSafe {
         &mut self,
         initial_rctx: Rctx,
         run_options: RunOptions,
-    ) -> std::result::Result<(), crate::Error>;
+    ) -> std::result::Result<(), crate::Error> {
+        let mut rctx = initial_rctx;
+        loop {
+            let bounds: Bounds = termion::terminal_size()?.into();
+            self.draw(&rctx, &bounds)?;
+
+            match self.update(&mut rctx, &bounds, &run_options) {
+                Ok(Some(())) => {},
+                Ok(None) | Err(_) => break,
+            }
+        }
+
+        Ok(())
+    }
 
     fn draw(
         &mut self,
@@ -232,29 +245,6 @@ impl Termion {
 }
 
 impl Frontend for Termion {
-    fn run(
-        &mut self,
-        initial_rctx: Rctx,
-        run_options: RunOptions,
-    ) -> std::result::Result<(), crate::Error> {
-        let mut rctx = initial_rctx;
-
-        loop {
-            let bounds: Bounds = termion::terminal_size()?.into();
-            self.draw(&rctx, &bounds)?;
-
-            match self.update(&mut rctx, &bounds, &run_options) {
-                Ok(Some(())) => {},
-                Ok(None) | Err(_) => break,
-            }
-        }
-
-        write!(self.screen, "{}{}", termion::screen::ToMainScreen, termion::cursor::Show)?;
-        self.screen.flush()?;
-
-        Ok(())
-    }
-
     fn draw(
         &mut self,
         rctx: &Rctx,
@@ -309,6 +299,13 @@ impl Frontend for Termion {
     }
 }
 
+impl Drop for Termion {
+    fn drop(&mut self) {
+        let _w = write!(self.screen, "{}{}", termion::screen::ToMainScreen, termion::cursor::Show);
+        let _f = self.screen.flush();
+    }
+}
+
 pub struct Tui {
     stdin: std::io::Stdin,
     terminal: tui::Terminal<tui::backend::TermionBackend<termion::screen::AlternateScreen<MouseTerminal<termion::raw::RawTerminal<std::io::Stdout>>>>>,
@@ -329,25 +326,6 @@ impl Tui {
 }
 
 impl Frontend for Tui {
-    fn run(
-        &mut self,
-        initial_rctx: Rctx,
-        run_options: RunOptions,
-    ) -> std::result::Result<(), crate::Error> {
-        let mut rctx = initial_rctx;
-        loop {
-            let bounds: Bounds = termion::terminal_size()?.into();
-            self.draw(&rctx, &bounds)?;
-
-            match self.update(&mut rctx, &bounds, &run_options) {
-                Ok(Some(())) => {},
-                Ok(None) | Err(_) => break,
-            }
-        }
-
-        Ok(())
-    }
-
     /// Redraw the UI with TUI
     ///
     /// TODO: clean up `_bounds` arg
