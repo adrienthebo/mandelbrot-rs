@@ -189,6 +189,8 @@ pub trait Frontend: Send + Sync + std::panic::UnwindSafe {
         rctx: &Rctx,
         bounds: &Bounds,
     ) -> Result<(), crate::Error>;
+
+    fn update(&mut self, rctx: &mut Rctx, bounds: &Bounds, run_options: &RunOptions) -> Result<Option<()>, crate::Error>;
 }
 
 pub struct Termion {
@@ -240,13 +242,10 @@ impl Frontend for Termion {
         loop {
             let bounds: Bounds = termion::terminal_size()?.into();
             self.draw(&rctx, &bounds)?;
-            match (&mut self.stdin).keys().next() {
-                None | Some(Err(_)) => break, // Stdin was closed or could not be read, shut down.
-                Some(Ok(key)) => {
-                    if let None = handle_key(key, &mut rctx, &bounds, &run_options) {
-                        break;
-                    }
-                }
+
+            match self.update(&mut rctx, &bounds, &run_options) {
+                Ok(Some(())) => {},
+                Ok(None) | Err(_) => break,
             }
         }
 
@@ -297,6 +296,17 @@ impl Frontend for Termion {
         self.screen.flush()?;
         Ok(())
     }
+
+    /// XXX this code looks pathological, refactor soon
+    fn update(&mut self, rctx: &mut Rctx, bounds: &Bounds, run_options: &RunOptions) -> Result<Option<()>, crate::Error> {
+        match (&mut self.stdin).keys().next() {
+            None | Some(Err(_)) => Ok(None), // Stdin was closed or could not be read, shut down.
+            Some(Ok(key)) => {
+                Ok(handle_key(key, rctx, &bounds, &run_options))
+            }
+        }
+
+    }
 }
 
 pub struct Tui {
@@ -328,15 +338,10 @@ impl Frontend for Tui {
         loop {
             let bounds: Bounds = termion::terminal_size()?.into();
             self.draw(&rctx, &bounds)?;
-            match (&mut self.stdin).keys().next() {
-                None | Some(Err(_)) => {
-                    std::thread::sleep(std::time::Duration::from_millis(100));
-                }
-                Some(Ok(key)) => {
-                    if let None = handle_key(key, &mut rctx, &bounds, &run_options) {
-                        break;
-                    }
-                }
+
+            match self.update(&mut rctx, &bounds, &run_options) {
+                Ok(Some(())) => {},
+                Ok(None) | Err(_) => break,
             }
         }
 
@@ -361,5 +366,17 @@ impl Frontend for Tui {
             // XXX bad clone, shouldn't be necessary
             rctx.clone().render(&mut f, chunks[1]);
         }).map_err(|e| e.into())
+    }
+
+    fn update(&mut self, rctx: &mut Rctx, bounds: &Bounds, run_options: &RunOptions) -> Result<Option<()>, crate::Error> {
+        match (&mut self.stdin).keys().next() {
+            None | Some(Err(_)) => {
+                std::thread::sleep(std::time::Duration::from_millis(100));
+                Ok(Some(()))
+            }
+            Some(Ok(key)) => {
+                Ok(handle_key(key, rctx, &bounds, &run_options))
+            }
+        }
     }
 }
