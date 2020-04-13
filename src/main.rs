@@ -111,7 +111,7 @@ fn run(
     rctx.comp = (2.3, 1.0);
 
     let mut runtime: Box<dyn mandelbrot::frontend::Frontend> = match frontend_type {
-        None | Some(FrontendType::Termion) => Box::new(mandelbrot::frontend::Termion {}),
+        None | Some(FrontendType::Termion) => Box::new(mandelbrot::frontend::Termion::build()?),
         Some(FrontendType::Tui) => Box::new(mandelbrot::frontend::Tui {})
     };
 

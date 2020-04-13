@@ -184,9 +184,23 @@ pub trait Frontend: Send + Sync + std::panic::UnwindSafe {
     ) -> std::result::Result<(), crate::Error>;
 }
 
-pub struct Termion {}
+pub struct Termion {
+    stdin: std::io::Stdin,
+    screen: termion::screen::AlternateScreen<termion::raw::RawTerminal<std::io::Stdout>>,
+}
 
 impl Termion {
+    pub fn build() -> Result<Self, crate::Error> {
+        // Terminal initialization
+        let stdin = io::stdin();
+        let stdout = io::stdout().into_raw_mode().unwrap();
+        let mut screen = termion::screen::AlternateScreen::from(stdout);
+
+        write!(screen, "{}{}", termion::screen::ToAlternateScreen, termion::cursor::Hide)?;
+
+        Ok(Termion { stdin, screen })
+    }
+
     /// Convert an RGB image to a series of ANSI escape sequences that set the cursor and paint the
     /// background.
     fn img_to_ansi(&self, img: &image::RgbImage, bounds: Bounds) -> String {
@@ -207,9 +221,8 @@ impl Termion {
         buf
     }
 
-    fn draw_frame<W: Write>(
-        &self,
-        screen: &mut W,
+    fn draw_frame(
+        &mut self,
         rctx: &Rctx,
         bounds: Bounds,
     ) -> Result<(), crate::Error> {
@@ -219,8 +232,8 @@ impl Termion {
         let render_stop: Instant = Instant::now();
 
         let draw_start = Instant::now();
-        write!(screen, "{}", ansi).unwrap();
-        screen.flush()?;
+        write!(self.screen, "{}", ansi).unwrap();
+        self.screen.flush()?;
         let draw_stop = Instant::now();
 
         let render_delta = render_stop - render_start;
@@ -238,7 +251,7 @@ impl Termion {
 
         for (offset, label) in labels.iter().enumerate() {
             write!(
-                screen,
+                self.screen,
                 "{}{}{}",
                 termion::cursor::Goto(1, offset as u16 + 1),
                 termion::style::Reset,
@@ -246,7 +259,7 @@ impl Termion {
             )?
         }
 
-        screen.flush()?;
+        self.screen.flush()?;
         Ok(())
     }
 }
@@ -257,19 +270,12 @@ impl Frontend for Termion {
         initial_rctx: Rctx,
         run_options: RunOptions,
     ) -> std::result::Result<(), crate::Error> {
-        // Terminal initialization
-        let mut stdin = io::stdin();
-        let stdout = io::stdout().into_raw_mode().unwrap();
-        let mut screen = termion::screen::AlternateScreen::from(stdout);
         let mut rctx = initial_rctx;
-
-        write!(screen, "{}", termion::screen::ToAlternateScreen).unwrap();
-        write!(screen, "{}", termion::cursor::Hide).unwrap();
 
         loop {
             let bounds: Bounds = termion::terminal_size()?.into();
-            self.draw_frame(&mut screen, &rctx, bounds)?;
-            match (&mut stdin).keys().next() {
+            self.draw_frame(&rctx, bounds)?;
+            match (&mut self.stdin).keys().next() {
                 None | Some(Err(_)) => break, // Stdin was closed or could not be read, shut down.
                 Some(Ok(key)) => {
                     if let None = handle_key(key, &mut rctx, &bounds, &run_options) {
@@ -279,9 +285,8 @@ impl Frontend for Termion {
             }
         }
 
-        write!(screen, "{}", termion::screen::ToMainScreen).unwrap();
-        write!(screen, "{}", termion::cursor::Show).unwrap();
-        screen.flush()?;
+        write!(self.screen, "{}{}", termion::screen::ToMainScreen, termion::cursor::Show)?;
+        self.screen.flush()?;
 
         Ok(())
     }
