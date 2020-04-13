@@ -2,8 +2,8 @@
 //!
 //!
 
-use crate::rctx::{Rctx, RctxTransform};
 use crate::polycomplex::ComplexFn;
+use crate::rctx::{Rctx, RctxTransform};
 use crate::Bounds;
 use std::fs::File;
 use std::io::{self, Write};
@@ -125,7 +125,11 @@ fn reset_terminal() -> std::io::Result<()> {
 /// Generate an image and location data for a given render context and bounds.
 ///
 /// TODO: handle write errors without panicking.
-fn screenshot(rctx: &Rctx, old_bounds: &Bounds, img_dir: &std::path::Path) -> Result<(), crate::Error> {
+fn screenshot(
+    rctx: &Rctx,
+    old_bounds: &Bounds,
+    img_dir: &std::path::Path,
+) -> Result<(), crate::Error> {
     let new_bounds = Bounds {
         width: 4000,
         height: 4000,
@@ -189,7 +193,7 @@ pub trait Frontend: Send + Sync + std::panic::UnwindSafe {
             self.draw(&rctx, &bounds)?;
 
             match self.update(&mut rctx, &bounds, &run_options) {
-                Ok(Some(())) => {},
+                Ok(Some(())) => {}
                 Ok(None) | Err(_) => break,
             }
         }
@@ -197,13 +201,16 @@ pub trait Frontend: Send + Sync + std::panic::UnwindSafe {
         Ok(())
     }
 
-    fn draw(
-        &mut self,
-        rctx: &Rctx,
-        bounds: &Bounds,
-    ) -> Result<(), crate::Error>;
+    /// Redraw the UI
+    fn draw(&mut self, rctx: &Rctx, bounds: &Bounds) -> Result<(), crate::Error>;
 
-    fn update(&mut self, rctx: &mut Rctx, bounds: &Bounds, run_options: &RunOptions) -> Result<Option<()>, crate::Error>;
+    /// Read input and update the frontend state accordingly
+    fn update(
+        &mut self,
+        rctx: &mut Rctx,
+        bounds: &Bounds,
+        run_options: &RunOptions,
+    ) -> Result<Option<()>, crate::Error>;
 }
 
 pub struct Termion {
@@ -218,7 +225,12 @@ impl Termion {
         let stdout = io::stdout().into_raw_mode().unwrap();
         let mut screen = termion::screen::AlternateScreen::from(stdout);
 
-        write!(screen, "{}{}", termion::screen::ToAlternateScreen, termion::cursor::Hide)?;
+        write!(
+            screen,
+            "{}{}",
+            termion::screen::ToAlternateScreen,
+            termion::cursor::Hide
+        )?;
 
         Ok(Termion { stdin, screen })
     }
@@ -245,11 +257,7 @@ impl Termion {
 }
 
 impl Frontend for Termion {
-    fn draw(
-        &mut self,
-        rctx: &Rctx,
-        bounds: &Bounds,
-    ) -> Result<(), crate::Error> {
+    fn draw(&mut self, rctx: &Rctx, bounds: &Bounds) -> Result<(), crate::Error> {
         let render_start: Instant = Instant::now();
         let img = rctx.bind(*bounds).to_ematrix().to_img(&rctx.colorer);
         let ansi = self.img_to_ansi(&img, bounds);
@@ -288,27 +296,40 @@ impl Frontend for Termion {
     }
 
     /// XXX this code looks pathological, refactor soon
-    fn update(&mut self, rctx: &mut Rctx, bounds: &Bounds, run_options: &RunOptions) -> Result<Option<()>, crate::Error> {
+    fn update(
+        &mut self,
+        rctx: &mut Rctx,
+        bounds: &Bounds,
+        run_options: &RunOptions,
+    ) -> Result<Option<()>, crate::Error> {
         match (&mut self.stdin).keys().next() {
             None | Some(Err(_)) => Ok(None), // Stdin was closed or could not be read, shut down.
-            Some(Ok(key)) => {
-                Ok(handle_key(key, rctx, &bounds, &run_options))
-            }
+            Some(Ok(key)) => Ok(handle_key(key, rctx, &bounds, &run_options)),
         }
-
     }
 }
 
 impl Drop for Termion {
     fn drop(&mut self) {
-        let _w = write!(self.screen, "{}{}", termion::screen::ToMainScreen, termion::cursor::Show);
+        let _w = write!(
+            self.screen,
+            "{}{}",
+            termion::screen::ToMainScreen,
+            termion::cursor::Show
+        );
         let _f = self.screen.flush();
     }
 }
 
 pub struct Tui {
     stdin: std::io::Stdin,
-    terminal: tui::Terminal<tui::backend::TermionBackend<termion::screen::AlternateScreen<MouseTerminal<termion::raw::RawTerminal<std::io::Stdout>>>>>,
+    terminal: tui::Terminal<
+        tui::backend::TermionBackend<
+            termion::screen::AlternateScreen<
+                MouseTerminal<termion::raw::RawTerminal<std::io::Stdout>>,
+            >,
+        >,
+    >,
 }
 
 impl Tui {
@@ -330,31 +351,36 @@ impl Frontend for Tui {
     ///
     /// TODO: clean up `_bounds` arg
     fn draw(&mut self, rctx: &Rctx, _bounds: &Bounds) -> Result<(), crate::Error> {
-        self.terminal.draw(|mut f| {
-            let chunks = Layout::default()
-                .direction(Direction::Horizontal)
-                .constraints([Constraint::Percentage(20), Constraint::Percentage(80)].as_ref())
-                .split(f.size());
+        self.terminal
+            .draw(|mut f| {
+                let chunks = Layout::default()
+                    .direction(Direction::Horizontal)
+                    .constraints([Constraint::Percentage(20), Constraint::Percentage(80)].as_ref())
+                    .split(f.size());
 
-            Block::default()
-                .title("Sidebar")
-                .borders(Borders::ALL)
-                .render(&mut f, chunks[0]);
+                Block::default()
+                    .title("Sidebar")
+                    .borders(Borders::ALL)
+                    .render(&mut f, chunks[0]);
 
-            // XXX bad clone, shouldn't be necessary
-            rctx.clone().render(&mut f, chunks[1]);
-        }).map_err(|e| e.into())
+                // XXX bad clone, shouldn't be necessary
+                rctx.clone().render(&mut f, chunks[1]);
+            })
+            .map_err(|e| e.into())
     }
 
-    fn update(&mut self, rctx: &mut Rctx, bounds: &Bounds, run_options: &RunOptions) -> Result<Option<()>, crate::Error> {
+    fn update(
+        &mut self,
+        rctx: &mut Rctx,
+        bounds: &Bounds,
+        run_options: &RunOptions,
+    ) -> Result<Option<()>, crate::Error> {
         match (&mut self.stdin).keys().next() {
             None | Some(Err(_)) => {
                 std::thread::sleep(std::time::Duration::from_millis(100));
                 Ok(Some(()))
             }
-            Some(Ok(key)) => {
-                Ok(handle_key(key, rctx, &bounds, &run_options))
-            }
+            Some(Ok(key)) => Ok(handle_key(key, rctx, &bounds, &run_options)),
         }
     }
 }

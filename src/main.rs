@@ -46,12 +46,16 @@ impl std::str::FromStr for FrontendType {
 fn read_rctx(path: &std::path::PathBuf) -> std::result::Result<Rctx, crate::Error> {
     let mut buf = String::new();
     File::open(&path)
-        .map_err(|e| e.into())
+        .map_err(|e| crate::Error::from(e))
         .and_then(|mut fh| {
+            // Read the given file into a string and handle errors
             fh.read_to_string(&mut buf)
                 .map_err(|e| crate::Error::from(e))
         })
-        .and_then(|_| serde_json::from_str(&buf).map_err(|e| e.into()))
+        .and_then(|_| {
+            // Deserialize the rctx and handle decode errors
+            serde_json::from_str(&buf).map_err(|e| crate::Error::from(e))
+        })
 }
 
 #[derive(Debug, StructOpt)]
@@ -112,7 +116,7 @@ fn run(
 
     let mut runtime: Box<dyn mandelbrot::frontend::Frontend> = match frontend_type {
         None | Some(FrontendType::Termion) => Box::new(mandelbrot::frontend::Termion::build()?),
-        Some(FrontendType::Tui) => Box::new(mandelbrot::frontend::Tui::build()?)
+        Some(FrontendType::Tui) => Box::new(mandelbrot::frontend::Tui::build()?),
     };
 
     frontend::run_with_altscreen(move || runtime.run(rctx, frontend::RunOptions::new(img_dir)))
