@@ -139,6 +139,7 @@ fn screenshot(
         loc: rctx
             .loc
             .scale(old_bounds, &new_bounds, crate::loc::ScaleMethod::Min),
+        comp: (1., 1.),
         ..rctx.clone()
     };
 
