@@ -7,12 +7,12 @@ edition = "2018"
 [dependencies]
 termion = "1.5"
 num = { version = "0.2", features = ["serde"] }
-itertools = "0.7.8"
-rayon = "1.1"
-nalgebra = "0.18"
+itertools = "0.7"
+rayon = "1"
+nalgebra = "*"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-image = "0.22"
+image = "0"
 structopt = "0.2"
 tui = "0.6.2"
 indicatif = {version = "0.12", features = ["with_rayon"]}

@@ -33,6 +33,14 @@ impl std::error::Error for Error {
     }
 }
 
+impl From<image::ImageError> for Error {
+    fn from(err: image::ImageError) -> Self {
+        Self {
+            source: Some(Box::new(err)),
+        }
+    }
+}
+
 impl From<io::Error> for Error {
     fn from(err: io::Error) -> Self {
         Self {
